@@ -39,11 +39,12 @@ func newAICmd() *cobra.Command {
 
 func newAIRunCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:           "run <task-name> [-- args...]",
-		Short:         "Run an AI task from the snapshot directory",
-		Args:          cobra.MinimumNArgs(1),
-		RunE:          runAITask,
-		SilenceErrors: true,
+		Use:                "run <task-name> [args...]",
+		Short:              "Run an AI task from the snapshot directory",
+		Args:               cobra.MinimumNArgs(1),
+		RunE:               runAITask,
+		SilenceErrors:      true,
+		DisableFlagParsing: true,
 	}
 }
 
