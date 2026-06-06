@@ -206,3 +206,36 @@ func TestAIRunCmd_ErrorWhenSnapshotMissing(t *testing.T) {
 		t.Fatal("expected error for missing snapshot task, got nil")
 	}
 }
+
+func TestAIRunCmd_PassesFlagStyleArgs(t *testing.T) {
+	content := []byte("#!/bin/sh\necho \"$@\"")
+	snapDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(snapDir, "print-args"), content, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	tmp := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+
+	snapshotDirOverride = func(string) (string, error) { return snapDir, nil }
+	t.Cleanup(func() { snapshotDirOverride = nil })
+
+	var buf bytes.Buffer
+	root := newRootCmd()
+	root.SetArgs([]string{"ai", "run", "print-args", "--env", "prod"})
+	root.SetOut(&buf)
+	if err := root.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	got := strings.TrimSpace(buf.String())
+	if got != "--env prod" {
+		t.Errorf("got %q, want %q", got, "--env prod")
+	}
+}
