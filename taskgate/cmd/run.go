@@ -13,11 +13,12 @@ import (
 
 func newRunCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:           "run <task-name> [-- args...]",
-		Short:         "Run a task from .taskgate/human/ or .taskgate/shared/",
-		Args:          cobra.MinimumNArgs(1),
-		RunE:          runTask,
-		SilenceErrors: true,
+		Use:                "run <task-name> [args...]",
+		Short:              "Run a task from .taskgate/human/ or .taskgate/shared/",
+		Args:               cobra.MinimumNArgs(1),
+		RunE:               runTask,
+		SilenceErrors:      true,
+		DisableFlagParsing: true,
 	}
 }
 
