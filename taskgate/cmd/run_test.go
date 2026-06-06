@@ -189,3 +189,29 @@ func TestRunCmd_NoProjectRoot_OutsideRepo(t *testing.T) {
 		t.Errorf("expected TASKGATE_PROJECT_ROOT to be unset, got %q", got)
 	}
 }
+
+func TestRunCmd_PassesFlagStyleArgs(t *testing.T) {
+	tmp := t.TempDir()
+	makeHumanScript(t, tmp, "print-args", "#!/bin/sh\necho \"$@\"")
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+
+	var buf bytes.Buffer
+	root := newRootCmd()
+	root.SetArgs([]string{"run", "print-args", "--foo", "bar"})
+	root.SetOut(&buf)
+	if err := root.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	got := strings.TrimSpace(buf.String())
+	if got != "--foo bar" {
+		t.Errorf("got %q, want %q", got, "--foo bar")
+	}
+}
