@@ -13,6 +13,7 @@ func newRootCmd() *cobra.Command {
 	root.AddCommand(newAICmd())
 	root.AddCommand(newSnapshotCmd())
 	root.AddCommand(newInitCmd())
+	root.AddCommand(newListCmd())
 	return root
 }
 
