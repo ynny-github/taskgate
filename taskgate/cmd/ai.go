@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -34,6 +35,7 @@ func newAICmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 	aiCmd.AddCommand(newAIRunCmd())
+	aiCmd.AddCommand(newAIListCmd())
 	return aiCmd
 }
 
@@ -135,4 +137,45 @@ func resolveAITask(snapshotDir, taskName string) (string, error) {
 		return "", fmt.Errorf("task %q is not executable", taskName)
 	}
 	return path, nil
+}
+
+func newAIListCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:           "list",
+		Short:         "List tasks available to 'taskgate ai run'",
+		Args:          cobra.NoArgs,
+		RunE:          runAIList,
+		SilenceErrors: true,
+		SilenceUsage:  true,
+	}
+}
+
+func runAIList(cmd *cobra.Command, _ []string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("cannot determine working directory: %w", err)
+	}
+
+	taskgateDir := filepath.Join(cwd, ".taskgate")
+	if _, err := os.Stat(taskgateDir); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf(".taskgate/ not found")
+		}
+		return fmt.Errorf("cannot access .taskgate/: %w", err)
+	}
+
+	for _, subdir := range []string{"ai", "shared"} {
+		names, err := listScripts(filepath.Join(taskgateDir, subdir))
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return fmt.Errorf("cannot read .taskgate/%s/: %w", subdir, err)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			fmt.Fprintf(cmd.OutOrStdout(), ".taskgate/%s/%s\n", subdir, name)
+		}
+	}
+	return nil
 }

@@ -239,3 +239,131 @@ func TestAIRunCmd_PassesFlagStyleArgs(t *testing.T) {
 		t.Errorf("got %q, want %q", got, "--env prod")
 	}
 }
+
+func TestAIListCmd_NoTaskgateDir(t *testing.T) {
+	tmp := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+
+	root := newRootCmd()
+	root.SetArgs([]string{"ai", "list"})
+	err = root.Execute()
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), ".taskgate/") {
+		t.Errorf("expected error to mention .taskgate/, got: %q", err.Error())
+	}
+}
+
+func TestAIListCmd_AiAndShared(t *testing.T) {
+	tmp := t.TempDir()
+	makeTask(t, tmp, "ai", "deploy")
+	makeTask(t, tmp, "shared", "lint")
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+
+	var buf bytes.Buffer
+	root := newRootCmd()
+	root.SetArgs([]string{"ai", "list"})
+	root.SetOut(&buf)
+	if err := root.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := ".taskgate/ai/deploy\n.taskgate/shared/lint\n"
+	if buf.String() != want {
+		t.Errorf("got %q, want %q", buf.String(), want)
+	}
+}
+
+func TestAIListCmd_AlphabeticalOrder(t *testing.T) {
+	tmp := t.TempDir()
+	makeTask(t, tmp, "ai", "train")
+	makeTask(t, tmp, "ai", "deploy")
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+
+	var buf bytes.Buffer
+	root := newRootCmd()
+	root.SetArgs([]string{"ai", "list"})
+	root.SetOut(&buf)
+	if err := root.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := ".taskgate/ai/deploy\n.taskgate/ai/train\n"
+	if buf.String() != want {
+		t.Errorf("got %q, want %q", buf.String(), want)
+	}
+}
+
+func TestAIListCmd_SkipsSubdirs(t *testing.T) {
+	tmp := t.TempDir()
+	makeTask(t, tmp, "ai", "deploy")
+	if err := os.MkdirAll(filepath.Join(tmp, ".taskgate", "ai", "subdir"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+
+	var buf bytes.Buffer
+	root := newRootCmd()
+	root.SetArgs([]string{"ai", "list"})
+	root.SetOut(&buf)
+	if err := root.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := ".taskgate/ai/deploy\n"
+	if buf.String() != want {
+		t.Errorf("got %q, want %q", buf.String(), want)
+	}
+}
+
+func TestAIListCmd_MissingSubdirsSkipped(t *testing.T) {
+	tmp := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tmp, ".taskgate"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+
+	var buf bytes.Buffer
+	root := newRootCmd()
+	root.SetArgs([]string{"ai", "list"})
+	root.SetOut(&buf)
+	if err := root.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if buf.String() != "" {
+		t.Errorf("expected empty output, got: %q", buf.String())
+	}
+}
