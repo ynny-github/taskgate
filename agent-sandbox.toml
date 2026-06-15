@@ -1,0 +1,17 @@
+  [server]
+  output_dir = "./tmp/agent-sandbox/command-router"
+
+  [sandbox]
+  build_context = "./docker/sandbox"
+  dockerfile = "Dockerfile"
+  image = "taskgate/sandbox:0.1.0"
+
+  [allow_patterns]
+  patterns = [
+    "git *",
+    "taskgate ai *",
+  ]
+
+  [nono]
+  profile = "nono.jsonc"
+  subcommand = "wrap"
