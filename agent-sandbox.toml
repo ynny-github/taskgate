@@ -10,6 +10,7 @@
   patterns = [
     "git *",
     "taskgate ai *",
+    "go *"
   ]
 
   [nono]

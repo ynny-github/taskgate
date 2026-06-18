@@ -1,0 +1,11 @@
+#!/bin/sh
+# ---
+# summary: Run the Go test suite with the race detector enabled.
+# body: |
+#   Runs `go test -race ./...` from the project root. Honors GOFLAGS for
+#   any extra `go test` flags (e.g. `-run`, `-count`, `-v`).
+# ---
+set -eu
+
+cd "${TASKGATE_PROJECT_ROOT:-$(pwd)}"
+go test -race ./...
