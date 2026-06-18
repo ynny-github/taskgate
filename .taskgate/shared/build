@@ -1,0 +1,14 @@
+#!/bin/sh
+# ---
+# summary: Build the taskgate binary into tmp/bin/.
+# body: |
+#   Cross-compiles for the current platform and drops the binary at
+#   tmp/bin/taskgate so the quickstart scenarios and local experiments
+#   can pick it up. Idempotent: re-running just rebuilds.
+# ---
+set -eu
+
+cd "${TASKGATE_PROJECT_ROOT:-$(pwd)}"
+mkdir -p tmp/bin
+go build -o tmp/bin/taskgate ./taskgate
+echo "built: tmp/bin/taskgate"
