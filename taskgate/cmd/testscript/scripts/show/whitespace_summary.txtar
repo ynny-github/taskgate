@@ -1,0 +1,16 @@
+# A summary annotation that is whitespace-only is treated as empty (same
+# handling as no summary). The task still appears at root, path-only.
+
+exec taskgate show
+cmp stdout expected.txt
+! stderr .
+
+-- .taskgate/human/build --
+#!/bin/sh
+# ---
+# summary: "   "
+# ---
+echo build
+
+-- expected.txt --
+.taskgate/human/build
