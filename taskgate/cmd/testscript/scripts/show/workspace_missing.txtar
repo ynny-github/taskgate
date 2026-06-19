@@ -1,0 +1,7 @@
+# Running show outside a workspace (no .taskgate/ in cwd or ancestors)
+# produces a non-zero exit with a clear `.taskgate/ not found` message.
+# This script intentionally creates NO .taskgate/ fixture.
+
+! exec taskgate show
+! stdout .
+stderr '\.taskgate/'
