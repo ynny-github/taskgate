@@ -1,0 +1,31 @@
+# A runnable _index (with shebang, executable-shaped) supplies the
+# directory's annotation and is NOT double-listed as a child.
+
+exec taskgate show deploy
+cmp stdout expected.txt
+! stderr .
+
+-- .taskgate/human/deploy/_index --
+#!/bin/sh
+# ---
+# summary: Promote a build.
+# body: |
+#   Idempotent.
+# ---
+echo "_index can also run"
+
+-- .taskgate/human/deploy/prod --
+#!/bin/sh
+# ---
+# summary: Promote to production.
+# ---
+echo prod
+
+-- expected.txt --
+.taskgate/human/deploy
+
+  Promote a build.
+
+Idempotent.
+
+.taskgate/human/deploy/prod	Promote to production.
