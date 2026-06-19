@@ -1,0 +1,19 @@
+# `taskgate ai show <name>` for a task emits a single `task` record with
+# path, summary, body.
+
+exec taskgate ai show analyze
+stdout '"kind":"task"'
+stdout '"path":"\.taskgate/ai/analyze"'
+stdout '"summary":"Analyze the codebase\."'
+stdout '"body":"Reads CONFIG from the environment\."'
+stdout '"audience":"ai"'
+! stderr .
+
+-- .taskgate/ai/analyze --
+#!/bin/sh
+# ---
+# summary: Analyze the codebase.
+# body: |
+#   Reads CONFIG from the environment.
+# ---
+echo analyze
