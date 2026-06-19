@@ -1,0 +1,24 @@
+# Annotated tasks from human/ and shared/ surface in the merged view with
+# their summaries; bucket directories never appear as rows.
+
+exec taskgate show
+cmp stdout expected.txt
+! stderr .
+
+-- .taskgate/human/build --
+#!/bin/sh
+# ---
+# summary: Build the project for the current platform.
+# ---
+echo build
+
+-- .taskgate/shared/lint --
+#!/bin/sh
+# ---
+# summary: Lint the codebase with project rules.
+# ---
+echo lint
+
+-- expected.txt --
+.taskgate/human/build	Build the project for the current platform.
+.taskgate/shared/lint	Lint the codebase with project rules.
