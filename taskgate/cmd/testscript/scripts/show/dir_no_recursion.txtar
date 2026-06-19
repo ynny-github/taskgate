@@ -1,0 +1,30 @@
+# Directory target lists nested sub-dirs as single rows (no recursion).
+# Drilling deeper requires `taskgate show deploy/prod`.
+
+exec taskgate show deploy
+cmp stdout expected.txt
+! stderr .
+
+-- .taskgate/human/deploy/_index --
+# ---
+# summary: Promote a build.
+# ---
+
+-- .taskgate/human/deploy/prod/_index --
+# ---
+# summary: Prod target.
+# ---
+
+-- .taskgate/human/deploy/prod/run --
+#!/bin/sh
+# ---
+# summary: Run a prod deploy.
+# ---
+echo prod
+
+-- expected.txt --
+.taskgate/human/deploy
+
+  Promote a build.
+
+.taskgate/human/deploy/prod/	Prod target.
