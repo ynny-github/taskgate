@@ -1,0 +1,24 @@
+# `taskgate show <name>` for a task prints the resolved path, summary, and
+# body in that order.
+
+exec taskgate show build
+cmp stdout expected.txt
+! stderr .
+
+-- .taskgate/human/build --
+#!/bin/sh
+# ---
+# summary: Build the project.
+# body: |
+#   Reads VERSION from the environment.
+#   Exits non-zero on build failure.
+# ---
+echo build
+
+-- expected.txt --
+.taskgate/human/build
+
+  Build the project.
+
+Reads VERSION from the environment.
+Exits non-zero on build failure.
