@@ -1,0 +1,26 @@
+# Filesystem-shaped inputs are rejected with a clear `run-style names only`
+# stderr message. Empty string is also rejected. Each rejected input is
+# tested in turn; the fixture is shared.
+
+! exec taskgate show .taskgate/human/build
+! stdout .
+stderr 'run-style'
+
+! exec taskgate show /abs/path
+! stdout .
+stderr 'run-style'
+
+! exec taskgate show ./build
+! stdout .
+stderr 'run-style'
+
+! exec taskgate show ''
+! stdout .
+stderr 'run-style'
+
+-- .taskgate/human/build --
+#!/bin/sh
+# ---
+# summary: Build.
+# ---
+echo build
