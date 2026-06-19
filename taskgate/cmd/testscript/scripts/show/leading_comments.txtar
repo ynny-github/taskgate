@@ -1,0 +1,19 @@
+# Non-annotation comments before the YAML envelope (shellcheck pragmas,
+# copyright headers) are skipped; the parser finds the envelope and
+# extracts the summary intact.
+
+exec taskgate show
+cmp stdout expected.txt
+! stderr .
+
+-- .taskgate/human/build --
+#!/bin/sh
+# shellcheck disable=SC2086
+# Copyright (c) 2026 Example Corp.
+# ---
+# summary: Build the project.
+# ---
+echo build
+
+-- expected.txt --
+.taskgate/human/build	Build the project.
