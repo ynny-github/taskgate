@@ -127,17 +127,22 @@ func TestShow(t *testing.T) {
 `testscript.RunMain` requires a `func() int` keyed by program name. The current `taskgate/main.go` invokes `cmd.Execute()` which returns no value and uses `os.Exit` internally on failure. To plug into `RunMain` we extract a small, side-effect-explicit entry point:
 
 ```go
-// taskgate/cmd/run.go (new function, alongside existing root setup)
+// taskgate/cmd/exec.go (new function, alongside existing root setup)
 func Run(args []string, stdout, stderr io.Writer) int {
     root := newRootCmd()
     root.SetArgs(args)
     root.SetOut(stdout)
     root.SetErr(stderr)
     if err := root.Execute(); err != nil {
-        var exitErr *show.ExitError
-        if errors.As(err, &exitErr) {
-            return exitErr.Code
+        var execErr *exec.ExitError
+        if errors.As(err, &execErr) {
+            return execErr.ExitCode()
         }
+        var showErr *show.ExitError
+        if errors.As(err, &showErr) {
+            return showErr.Code
+        }
+        fmt.Fprintln(stderr, "taskgate:", err)
         return 1
     }
     return 0
