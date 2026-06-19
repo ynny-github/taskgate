@@ -1,0 +1,27 @@
+# Same logical name in audience bucket and shared bucket is a hard error:
+# non-zero exit, stderr lists both real paths, stdout is empty (no partial
+# listing). Symmetric across no-arg browse and explicit name.
+
+! exec taskgate show
+! stdout .
+stderr '\.taskgate/human/build'
+stderr '\.taskgate/shared/build'
+
+! exec taskgate show build
+! stdout .
+stderr '\.taskgate/human/build'
+stderr '\.taskgate/shared/build'
+
+-- .taskgate/human/build --
+#!/bin/sh
+# ---
+# summary: Build (human variant).
+# ---
+echo h
+
+-- .taskgate/shared/build --
+#!/bin/sh
+# ---
+# summary: Build (shared variant).
+# ---
+echo s
