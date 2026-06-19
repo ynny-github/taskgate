@@ -1,0 +1,15 @@
+# A name that does not resolve produces a non-zero exit with a clear
+# `not found` stderr message that names the audience scope.
+
+! exec taskgate show no-such-task
+! stdout .
+stderr 'not found'
+stderr '\.taskgate/human'
+stderr '\.taskgate/shared'
+
+-- .taskgate/human/build --
+#!/bin/sh
+# ---
+# summary: Build.
+# ---
+echo build
