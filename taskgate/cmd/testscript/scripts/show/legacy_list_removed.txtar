@@ -1,0 +1,8 @@
+# `taskgate list` was removed in favour of `taskgate show`. Invoking it
+# must surface cobra's "unknown command" error and exit non-zero.
+
+! exec taskgate list
+stderr 'unknown command'
+
+! exec taskgate ai list
+stderr 'unknown command'
