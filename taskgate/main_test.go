@@ -1,5 +1,5 @@
-// taskgate/cmd/testscript/main_test.go
-package testscript_test
+// taskgate/main_test.go
+package main_test
 
 import (
 	"os"
@@ -20,6 +20,6 @@ func TestMain(m *testing.M) {
 
 func TestShow(t *testing.T) {
 	testscript.Run(t, testscript.Params{
-		Dir: "scripts/show",
+		Dir: "testdata/show",
 	})
 }
