@@ -1,0 +1,30 @@
+# `taskgate ai show <dir-name>` emits a single `directory` record with
+# `entries[]` carrying immediate children (path + summary only).
+
+exec taskgate ai show deploy
+stdout '"kind":"directory"'
+stdout '"path":"\.taskgate/shared/deploy"'
+stdout '"summary":"Promote a build\."'
+stdout '"entries":\['
+stdout '"path":"\.taskgate/shared/deploy/canary"'
+stdout '"path":"\.taskgate/shared/deploy/prod"'
+! stderr .
+
+-- .taskgate/shared/deploy/_index --
+# ---
+# summary: Promote a build.
+# ---
+
+-- .taskgate/shared/deploy/canary --
+#!/bin/sh
+# ---
+# summary: Promote to canary.
+# ---
+echo canary
+
+-- .taskgate/shared/deploy/prod --
+#!/bin/sh
+# ---
+# summary: Promote to production.
+# ---
+echo prod
