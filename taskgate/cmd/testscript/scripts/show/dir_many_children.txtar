@@ -1,0 +1,359 @@
+# A directory with many children produces a complete listing with no
+# truncation. We seed 50 children (enough to surface any per-child cost or
+# accidental truncation) and assert the first and the last basename-lex
+# entries are both present.
+
+exec taskgate show many
+stdout '\.taskgate/human/many/child00'
+stdout '\.taskgate/human/many/child49'
+! stderr .
+
+-- .taskgate/human/many/child00 --
+#!/bin/sh
+# ---
+# summary: 00.
+# ---
+echo 00
+
+-- .taskgate/human/many/child01 --
+#!/bin/sh
+# ---
+# summary: 01.
+# ---
+echo 01
+
+-- .taskgate/human/many/child02 --
+#!/bin/sh
+# ---
+# summary: 02.
+# ---
+echo 02
+
+-- .taskgate/human/many/child03 --
+#!/bin/sh
+# ---
+# summary: 03.
+# ---
+echo 03
+
+-- .taskgate/human/many/child04 --
+#!/bin/sh
+# ---
+# summary: 04.
+# ---
+echo 04
+
+-- .taskgate/human/many/child05 --
+#!/bin/sh
+# ---
+# summary: 05.
+# ---
+echo 05
+
+-- .taskgate/human/many/child06 --
+#!/bin/sh
+# ---
+# summary: 06.
+# ---
+echo 06
+
+-- .taskgate/human/many/child07 --
+#!/bin/sh
+# ---
+# summary: 07.
+# ---
+echo 07
+
+-- .taskgate/human/many/child08 --
+#!/bin/sh
+# ---
+# summary: 08.
+# ---
+echo 08
+
+-- .taskgate/human/many/child09 --
+#!/bin/sh
+# ---
+# summary: 09.
+# ---
+echo 09
+
+-- .taskgate/human/many/child10 --
+#!/bin/sh
+# ---
+# summary: 10.
+# ---
+echo 10
+
+-- .taskgate/human/many/child11 --
+#!/bin/sh
+# ---
+# summary: 11.
+# ---
+echo 11
+
+-- .taskgate/human/many/child12 --
+#!/bin/sh
+# ---
+# summary: 12.
+# ---
+echo 12
+
+-- .taskgate/human/many/child13 --
+#!/bin/sh
+# ---
+# summary: 13.
+# ---
+echo 13
+
+-- .taskgate/human/many/child14 --
+#!/bin/sh
+# ---
+# summary: 14.
+# ---
+echo 14
+
+-- .taskgate/human/many/child15 --
+#!/bin/sh
+# ---
+# summary: 15.
+# ---
+echo 15
+
+-- .taskgate/human/many/child16 --
+#!/bin/sh
+# ---
+# summary: 16.
+# ---
+echo 16
+
+-- .taskgate/human/many/child17 --
+#!/bin/sh
+# ---
+# summary: 17.
+# ---
+echo 17
+
+-- .taskgate/human/many/child18 --
+#!/bin/sh
+# ---
+# summary: 18.
+# ---
+echo 18
+
+-- .taskgate/human/many/child19 --
+#!/bin/sh
+# ---
+# summary: 19.
+# ---
+echo 19
+
+-- .taskgate/human/many/child20 --
+#!/bin/sh
+# ---
+# summary: 20.
+# ---
+echo 20
+
+-- .taskgate/human/many/child21 --
+#!/bin/sh
+# ---
+# summary: 21.
+# ---
+echo 21
+
+-- .taskgate/human/many/child22 --
+#!/bin/sh
+# ---
+# summary: 22.
+# ---
+echo 22
+
+-- .taskgate/human/many/child23 --
+#!/bin/sh
+# ---
+# summary: 23.
+# ---
+echo 23
+
+-- .taskgate/human/many/child24 --
+#!/bin/sh
+# ---
+# summary: 24.
+# ---
+echo 24
+
+-- .taskgate/human/many/child25 --
+#!/bin/sh
+# ---
+# summary: 25.
+# ---
+echo 25
+
+-- .taskgate/human/many/child26 --
+#!/bin/sh
+# ---
+# summary: 26.
+# ---
+echo 26
+
+-- .taskgate/human/many/child27 --
+#!/bin/sh
+# ---
+# summary: 27.
+# ---
+echo 27
+
+-- .taskgate/human/many/child28 --
+#!/bin/sh
+# ---
+# summary: 28.
+# ---
+echo 28
+
+-- .taskgate/human/many/child29 --
+#!/bin/sh
+# ---
+# summary: 29.
+# ---
+echo 29
+
+-- .taskgate/human/many/child30 --
+#!/bin/sh
+# ---
+# summary: 30.
+# ---
+echo 30
+
+-- .taskgate/human/many/child31 --
+#!/bin/sh
+# ---
+# summary: 31.
+# ---
+echo 31
+
+-- .taskgate/human/many/child32 --
+#!/bin/sh
+# ---
+# summary: 32.
+# ---
+echo 32
+
+-- .taskgate/human/many/child33 --
+#!/bin/sh
+# ---
+# summary: 33.
+# ---
+echo 33
+
+-- .taskgate/human/many/child34 --
+#!/bin/sh
+# ---
+# summary: 34.
+# ---
+echo 34
+
+-- .taskgate/human/many/child35 --
+#!/bin/sh
+# ---
+# summary: 35.
+# ---
+echo 35
+
+-- .taskgate/human/many/child36 --
+#!/bin/sh
+# ---
+# summary: 36.
+# ---
+echo 36
+
+-- .taskgate/human/many/child37 --
+#!/bin/sh
+# ---
+# summary: 37.
+# ---
+echo 37
+
+-- .taskgate/human/many/child38 --
+#!/bin/sh
+# ---
+# summary: 38.
+# ---
+echo 38
+
+-- .taskgate/human/many/child39 --
+#!/bin/sh
+# ---
+# summary: 39.
+# ---
+echo 39
+
+-- .taskgate/human/many/child40 --
+#!/bin/sh
+# ---
+# summary: 40.
+# ---
+echo 40
+
+-- .taskgate/human/many/child41 --
+#!/bin/sh
+# ---
+# summary: 41.
+# ---
+echo 41
+
+-- .taskgate/human/many/child42 --
+#!/bin/sh
+# ---
+# summary: 42.
+# ---
+echo 42
+
+-- .taskgate/human/many/child43 --
+#!/bin/sh
+# ---
+# summary: 43.
+# ---
+echo 43
+
+-- .taskgate/human/many/child44 --
+#!/bin/sh
+# ---
+# summary: 44.
+# ---
+echo 44
+
+-- .taskgate/human/many/child45 --
+#!/bin/sh
+# ---
+# summary: 45.
+# ---
+echo 45
+
+-- .taskgate/human/many/child46 --
+#!/bin/sh
+# ---
+# summary: 46.
+# ---
+echo 46
+
+-- .taskgate/human/many/child47 --
+#!/bin/sh
+# ---
+# summary: 47.
+# ---
+echo 47
+
+-- .taskgate/human/many/child48 --
+#!/bin/sh
+# ---
+# summary: 48.
+# ---
+echo 48
+
+-- .taskgate/human/many/child49 --
+#!/bin/sh
+# ---
+# summary: 49.
+# ---
+echo 49
