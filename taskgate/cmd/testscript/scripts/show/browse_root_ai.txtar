@@ -1,0 +1,31 @@
+# `taskgate ai show` with no argument merges shared/ ∪ ai/ (not human/) and
+# emits a `listing` envelope on stdout.
+
+exec taskgate ai show
+stdout '"kind":"listing"'
+stdout '"audience":"ai"'
+stdout '\.taskgate/ai/analyze'
+stdout '\.taskgate/shared/lint'
+! stdout '\.taskgate/human/build'
+! stderr .
+
+-- .taskgate/human/build --
+#!/bin/sh
+# ---
+# summary: Build.
+# ---
+echo build
+
+-- .taskgate/shared/lint --
+#!/bin/sh
+# ---
+# summary: Lint.
+# ---
+echo lint
+
+-- .taskgate/ai/analyze --
+#!/bin/sh
+# ---
+# summary: Analyze.
+# ---
+echo analyze
