@@ -1,0 +1,12 @@
+# A task with no summary annotation must still produce a `task` record
+# whose `summary` field is the explicit JSON `null`, not omitted.
+
+exec taskgate ai show bare
+stdout '"kind":"task"'
+stdout '"path":"\.taskgate/ai/bare"'
+stdout '"summary":null'
+! stderr .
+
+-- .taskgate/ai/bare --
+#!/bin/sh
+echo hi
