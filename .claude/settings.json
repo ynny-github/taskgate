@@ -3,12 +3,17 @@
     "commit": ""
   },
   "permissions": {
-    "defaultMode": "auto"
+    "defaultMode": "auto",
+    "deny": [
+      "Read(~/.config/gh/**)",
+      "Glob(~/.config/gh/**)",
+      "Grep(~/.config/gh/**)"
+    ]
   },
   "autoMode": {
     "allow": ["$defaults", "Write(.claude/rules/*)", "Edit(.claude/rules/*)"]
   },
-  "enabledMcpjsonServers": ["github", "agent-sandbox"],
+  "enabledMcpjsonServers": ["agent-sandbox"],
   "env": {
     "GIT_AUTHOR_NAME": "Claude Code",
     "GIT_COMMITTER_NAME": "Claude Code",
