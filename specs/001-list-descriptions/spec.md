@@ -28,15 +28,6 @@ A human operator runs `taskgate show` at the top of a project and, instead of on
 
 **Why this priority**: This is the everyday discovery flow. Today the old `list` command returned only paths and forced the operator to open files to know what each task did. Adding summaries removes that friction immediately and is the foundation every other story builds on (the same summary string also feeds the directory and AI views). The merged-view model is borrowed from `taskgate run`, which already treats the audience buckets as internal classification rather than user-facing structure.
 
-**Independent Test**: Place several task scripts split across `.taskgate/human/` and `.taskgate/shared/`, give some a summary annotation and leave others bare, run `taskgate show` with no path argument, and verify (a) every task from both buckets appears as its own row with its real path, (b) annotated tasks show their summary, (c) bare tasks still appear with path only, and (d) `human/` and `shared/` themselves never appear as rows.
-
-**Acceptance Scenarios**:
-
-1. **Given** a project with `.taskgate/human/build` and `.taskgate/shared/lint`, each carrying a summary annotation, **When** the operator runs `taskgate show` with no path argument, **Then** the output lists both tasks with their real paths (`.taskgate/human/build`, `.taskgate/shared/lint`) and their summaries on the same rows, and the output does **not** contain rows for `human/`, `shared/`, or `ai/`.
-2. **Given** a task script that has no annotation block, **When** the operator runs `taskgate show` with no path argument, **Then** that task still appears in the merged view using its real path, and no error is raised.
-3. **Given** a task `build` that exists in both `.taskgate/human/` and `.taskgate/shared/` (a name collision in the merged view), **When** the operator runs `taskgate show` with no path argument, **Then** the command emits a collision warning listing the conflicting real paths (e.g., "name `build` collides: `.taskgate/human/build` vs `.taskgate/shared/build`") and exits with a non-zero status; no merged listing is printed.
-4. **Given** the same project state, **When** the AI counterpart runs `taskgate ai show` with no path argument, **Then** the output is the merged view of `.taskgate/shared/` ∪ `.taskgate/ai/` (NOT `human/`), confirming that the audience filter is `audience ∪ shared`.
-
 ---
 
 ### User Story 2 - Operator inspects a single task in depth (Priority: P2)
@@ -44,14 +35,6 @@ A human operator runs `taskgate show` at the top of a project and, instead of on
 The operator has narrowed down to one task and wants the full picture — summary plus the longer body that explains inputs, outputs, side effects, or anything the author wanted to communicate — without leaving the terminal or opening the file.
 
 **Why this priority**: Once summaries exist (P1), the natural next step is "tell me more about this one." Deferring to P2 because the basic browse flow must work first; this story is unblocked the moment summary extraction is in place.
-
-**Independent Test**: Author a task with both a summary line and a multi-paragraph body in its annotation, run the show command with that task's **name** (run-style, no path) as the argument, and verify both the summary and the full body are printed.
-
-**Acceptance Scenarios**:
-
-1. **Given** a task file with a summary and a body in its annotation, **When** the operator runs `taskgate show <task-name>`, **Then** the output prints the resolved entry's real physical path, the summary, and the full body in that order.
-2. **Given** a task file with a summary but no body, **When** the operator runs `taskgate show <task-name>`, **Then** the output prints the path and the summary; the body section is omitted rather than shown as empty.
-3. **Given** a name that does not resolve to any task or directory in the merged view (whether genuinely absent, or because the operator passed a filesystem path like `.taskgate/human/build` or `/abs/path` instead of a bare name), **When** the operator runs `taskgate show` with it, **Then** the command exits with a clear error stating show accepts only `run`-style names (bare or slash-separated), and listing the audience scope that was searched.
 
 ---
 
@@ -61,15 +44,6 @@ The operator runs the show command against a directory (for example, `.taskgate/
 
 **Why this priority**: Tied with Story 2 at P2 because it unlocks navigation by area of concern, which becomes important as soon as a project grows beyond a handful of tasks. Either Story 2 or Story 3 alone delivers value; neither blocks the other.
 
-**Independent Test**: Create a sub-directory under one of the audience buckets containing a mix of task files and one nested sub-directory, with and without a dedicated description file at its root; run the show command with the sub-directory's **name** (run-style, e.g., `taskgate show deploy`); verify the directory's own summary + body is printed when the description file exists, only its real path is printed when it does not, and each immediate child's summary appears on its own row.
-
-**Acceptance Scenarios**:
-
-1. **Given** a directory `.taskgate/human/deploy/` that contains a dedicated description file (with summary and body) and three child task files each with their own summary annotation, **When** the operator runs `taskgate show deploy`, **Then** the output prints the directory's real path, summary, and body, followed by one row per immediate child showing each child's real path and summary.
-2. **Given** the same directory but without a dedicated description file, **When** the operator runs `taskgate show deploy`, **Then** the output prints the directory's real path with no summary/body section, followed by one row per immediate child showing each child's real path and summary.
-3. **Given** a directory `.taskgate/human/deploy/` containing a nested sub-directory `prod/`, **When** the operator runs `taskgate show deploy`, **Then** `prod/` appears in the children list with its summary (taken from its own description file if present, omitted otherwise); the listing does not recurse beyond the immediate children. To go deeper, the operator runs `taskgate show deploy/prod`.
-4. **Given** a directory whose dedicated description file is malformed (cannot be parsed for a summary), **When** the operator runs `taskgate show <name>` against it, **Then** the listing still succeeds, the directory's summary is omitted, and a non-fatal notice surfaces in the human view (and is silent in the AI view).
-
 ---
 
 ### User Story 4 - AI agent consumes the same view in a machine-friendly form (Priority: P2)
@@ -78,28 +52,9 @@ The AI-facing form of the show command emits the same information (path, summary
 
 **Why this priority**: Same priority as Stories 2 and 3 because the AI consumer is on equal footing with the human consumer in this product. Independent: the AI form can be built from the same extraction logic and exercised through its own command surface.
 
-**Independent Test**: Run `taskgate ai show` (a) with no argument, (b) with a task name, and (c) with a directory name, and verify each invocation produces output that can be parsed by a single small parser into records with explicit `path`, `summary`, `body`, and `children` fields.
-
-**Acceptance Scenarios**:
-
-1. **Given** the same project state used in Story 1, **When** an AI agent invokes `taskgate ai show` with no argument, **Then** the output is structured (not formatted prose) and contains one record per merged-view entry with explicit `path` (real physical path) and `summary` fields.
-2. **Given** the task-name invocation from Story 2, **When** an AI agent invokes `taskgate ai show <task-name>`, **Then** the output is a single structured record containing `path`, `summary`, and `body`.
-3. **Given** the directory invocation from Story 3, **When** an AI agent invokes `taskgate ai show <directory-name>`, **Then** the output is a single structured record containing the directory's `path`, `summary`, `body`, and a `children` array, where each child has at least `path` and `summary`.
-4. **Given** a task with no summary annotation, **When** an AI agent invokes either show form against it, **Then** the structured output still includes the record with an explicit empty/null summary marker rather than dropping it.
-
 ---
 
-### Edge Cases
-
-- A task file exists but is unreadable (e.g., permission denied): the output surfaces the path with a clear notice and continues with the remaining entries rather than aborting the whole invocation.
-- The annotation block exists but contains only whitespace after the summary marker: the summary is treated as empty (same handling as "no summary present").
-- Other comment lines appear between the shebang and the annotation envelope (e.g., a `shellcheck disable` pragma, a copyright header, or any normal narrative comment): the recognizer scans past them to find the opening `---` delimiter; their content is not part of the parsed annotation. Lines *inside* the envelope are parsed as YAML in full — there is no concept of "annotation lines mixed with normal comments" within the envelope itself.
-- A directory's dedicated description file is itself a runnable task file: the file's annotation is used as the directory's summary/body, and the file is **not** listed again as one of the directory's children (avoids double-counting).
-- The user supplies what looks like a filesystem path (absolute, cwd-relative, or `.taskgate/`-prefixed): rejected with a clear error explaining show accepts only `run`-style bare or slash-separated names, never filesystem paths. This applies even if the path would resolve to a real entry under `.taskgate/`.
-- A symbolic link inside `.taskgate/` points to a target outside `.taskgate/`: the show command refuses to follow the link during directory traversal; it shows the link as an entry but does not read or display the off-workspace target's body.
-- A directory contains hundreds of children: output stays usable (no truncation without warning); the human form must remain readable and the AI form must remain parseable.
-- The same logical name exists in **both** the audience bucket and the shared bucket (e.g., `.taskgate/human/build` and `.taskgate/shared/build` both present, as files or directories or one of each): treated as a **hard error** per FR-013. The show command does not allow such collisions and exits with a non-zero status after emitting a warning that lists all conflicting real paths. This applies whether the conflict surfaces in the no-argument browse, in an explicit `taskgate show <name>` reference, or while listing the children of a directory target. Operators resolve the collision at the source — by renaming or removing one of the entries — before show can produce output for the affected region.
-- The user supplies a name that does not resolve to any entry in the merged view: show exits with a clear "not found" error listing the audience scope that was searched (e.g., "`build` not found in `.taskgate/human/` or `.taskgate/shared/`").
+Acceptance scenarios, edge cases, and per-story test recipes for this feature now live as executable tests under `taskgate/testdata/show/*.txtar`, run by `TestShow` in `taskgate/main_test.go`.
 
 ## Requirements *(mandatory)*
 
@@ -107,7 +62,7 @@ The AI-facing form of the show command emits the same information (path, summary
 
 - **FR-001**: System MUST extract a per-entry **summary** (single line) and an optional **body** (multi-line) from a designated annotation block written as comments inside each task file, using one consistent notation across the project.
 - **FR-002**: System MUST emit entries with their path even when no annotation is present, so no task is hidden from discovery for lacking documentation.
-- **FR-003**: System MUST accept an optional **name argument** identifying either a task or a directory inside the **merged view** (see FR-012). The name is a `run`-style bare entry name (e.g., `build`) or a slash-separated nested name (e.g., `deploy/prod`). Filesystem paths — absolute, cwd-relative, or `.taskgate/`-prefixed — MUST NOT be accepted; supplying one is treated as a "not found" / "invalid name" error. The name resolves against the merged view using the same precedence as `taskgate run` (audience bucket first, then shared) when only one match should win; for the no-argument browse case both rows of a collision are shown (see Story 1 scenario 3). The command then behaves as:
+- **FR-003**: System MUST accept an optional **name argument** identifying either a task or a directory inside the **merged view** (see FR-012). The name is a `run`-style bare entry name (e.g., `build`) or a slash-separated nested name (e.g., `deploy/prod`). Filesystem paths — absolute, cwd-relative, or `.taskgate/`-prefixed — MUST NOT be accepted; supplying one is treated as a "not found" / "invalid name" error. The name resolves against the merged view using the same precedence as `taskgate run` (audience bucket first, then shared) when only one match should win; collisions are handled per FR-013. The command then behaves as:
   - **FR-003a**: When the name resolves to a **task file**, system MUST output that file's real physical path, its summary, and its body (omitting the body section when no body is present).
   - **FR-003b**: When the name resolves to a **directory**, system MUST output that directory's real physical path, its summary, and body (when available), then a one-line entry for each **immediate** child in the merged view (task or sub-directory) showing the child's real path and summary.
   - **FR-003c**: When **no name argument** is given, system MUST present the **merged audience-filtered root view** (see FR-012): the union of immediate entries under the shared bucket and the audience's bucket, with each row's path reflecting the entry's real physical location. The audience-bucket directories MUST NOT appear as rows in this output. The "immediate children only" rule (FR-010) applies to this merged view.
@@ -122,16 +77,7 @@ The AI-facing form of the show command emits the same information (path, summary
 - **FR-012**: System MUST present a **merged audience-filtered view** that combines entries from the shared bucket (`.taskgate/shared/`) with entries from the audience's bucket (`.taskgate/human/` for `taskgate show`; `.taskgate/ai/` for `taskgate ai show`). The audience-bucket directories themselves (`human/`, `ai/`, `shared/`) MUST NOT appear as entries in any show output. Every output row's path field MUST reflect the entry's real physical location under `.taskgate/`. This model is intentionally aligned with the existing `taskgate run` / `taskgate ai run` task-resolution behavior.
 - **FR-013**: System MUST detect **name collisions** in the merged view — i.e., the same logical name appearing in both the audience bucket and the shared bucket (whether as a task file, a directory, or a mix). On detecting any collision in the region being shown (no-argument browse, explicit name reference, or the children listing of a directory target), system MUST emit a warning naming all conflicting real paths and exit with a **non-zero status without emitting partial output of the conflicting region**. The human form emits the warning on stderr; the AI form emits a structured error record (final shape deferred to plan phase, consistent with FR-006). Collisions outside the region being shown do not block the invocation. This makes show stricter than `taskgate run`, which silently resolves collisions via audience-first precedence — show treats them as an authoring error to fix.
 
-### Key Entities *(include if feature involves data)*
-
-- **Task entry**: A single executable file under `.taskgate/{human,ai,shared}/...`. Has a path; may carry an annotation block providing a summary and an optional body. A task's physical location determines which audience(s) can see it via show.
-- **Directory entry**: A folder under `.taskgate/`. Has a path; may carry a summary and body via an optional dedicated description file placed inside it; lists its immediate children (which are themselves task entries or directory entries).
-- **Audience bucket**: One of the three reserved top-level directories under `.taskgate/`: `human/`, `ai/`, `shared/`. Acts as an internal audience classifier and is **invisible** in show output — never appears as its own row. Tasks under `shared/` are visible to both audiences; tasks under `human/` are visible only to `taskgate show`; tasks under `ai/` are visible only to `taskgate ai show`.
-- **Merged view**: The user-facing tree that show exposes. For `taskgate show` it is the union of entries directly under `.taskgate/shared/` and `.taskgate/human/`; for `taskgate ai show` it is the union of `.taskgate/shared/` and `.taskgate/ai/`. The buckets themselves are folded out; entry paths retain their real physical location.
-- **Annotation block**: The summary + optional body, expressed in the project's chosen comment notation, embedded at the top of a task file or in a directory's description file. Two parts: a single-line **summary** and a free-form multi-line **body**.
-- **Directory description file**: An optional file inside a directory that carries that directory's annotation block. Identified by a project-wide reserved name. Its presence is never required; its absence is not an error.
-- **Output record**: The unit of output. Carries the entry's real physical path, its summary (possibly empty), its body (only for the single-target file/directory case), and — for a directory target — the list of immediate child records (path + summary only) in the merged view.
-- **Audience mode**: The output shape and the filter applied. **Human** mode (`taskgate show`) emits formatted text and merges `shared/` ∪ `human/`. **AI** mode (`taskgate ai show`) emits a structured form and merges `shared/` ∪ `ai/`. Both carry the same information for any given invocation.
+Vocabulary used above (Task entry, Audience bucket, Merged view, Annotation block, etc.) is defined in [`docs/glossary.md`](../../docs/glossary.md).
 
 ## Success Criteria *(mandatory)*
 
