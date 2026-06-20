@@ -10,6 +10,8 @@
       "__MISE*",
       "MISE*",
       "GITHUB_MCP_ACCESS_TOKEN",
+      "GO*",
+      "UV_CACHE_DIR",
     ],
   },
   "extends": "claude",

@@ -3,6 +3,9 @@ go = "1.25"
 "go:github.com/ynny-github/agent-sandbox/agent-sandbox" = "v0.7.0"
 "go:github.com/ynny-github/taskgate/taskgate" = "v0.1.1"
 lefthook = "latest"
+python = "3.14.6"
+uv = "0.11.22"
 
 [env]
 GOMODCACHE = "{{config_root}}/.go/pkg/mod/cache"
+UV_CACHE_DIR = "{{config_root}}/.uv/cache"

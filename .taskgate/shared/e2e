@@ -1,0 +1,17 @@
+#!/bin/sh
+# ---
+# summary: Run the pytest-bdd E2E suite against the built taskgate binary.
+# body: |
+#   Runs `uv run pytest` from the project root. The session-scoped fixture
+#   in tests/conftest.py rebuilds the binary via `go build ./taskgate`
+#   before the first scenario, so changes to production code are picked up
+#   automatically.
+#
+#   Extra pytest args are passed through, e.g.
+#     taskgate run e2e -- -k collision -v
+#     taskgate run e2e -- --pdb
+# ---
+set -eu
+
+cd "${TASKGATE_PROJECT_ROOT:-$(pwd)}"
+uv run pytest "$@"

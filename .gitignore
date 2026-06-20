@@ -4,5 +4,10 @@ tmp/
 # go
 .go/
 
+# python
+.venv/
+.uv/
+__pycache__/
+
 # speckit
 .specify/feature.json

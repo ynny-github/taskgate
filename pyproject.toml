@@ -1,0 +1,10 @@
+[project]
+name = "convert-specs-to-test"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "pytest>=9.1.1",
+    "pytest-bdd>=8.1.0",
+]
