@@ -30,8 +30,8 @@ The AI-facing form of the show command emits the same information (path, summary
 
 - **Functional requirements**: [`docs/show/requirements.md`](../../docs/show/requirements.md)
 - **Acceptance scenarios** (executable tests): [`tests/features/show/*.feature`](../../tests/features/show) — run via `uv run pytest` or `taskgate run e2e`
-- **Design decisions** (ADRs): [`docs/adr/`](../../docs/adr)
-- **Vocabulary**: [`docs/glossary.md`](../../docs/glossary.md)
+- **Design decisions** (ADRs): [`docs/show/adr/`](../../docs/show/adr)
+- **Vocabulary**: [`docs/show/glossary.md`](../../docs/show/glossary.md)
 
 ## Success Criteria *(mandatory)*
 

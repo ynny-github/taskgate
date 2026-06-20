@@ -2,7 +2,7 @@
 
 Normative requirements that `taskgate show` / `taskgate ai show` MUST satisfy. Each FR is pinned by one or more scenarios under [`tests/features/show/*.feature`](../../tests/features/show) (run via `uv run pytest` or `taskgate run e2e`).
 
-Vocabulary used below (Task entry, Audience bucket, Merged view, Annotation block, etc.) is defined in [`../glossary.md`](../glossary.md). Design rationale for the major decisions lives under [`../adr/`](../adr).
+Vocabulary used below (Task entry, Audience bucket, Merged view, Annotation block, etc.) is defined in [`glossary.md`](./glossary.md). Design rationale for the major decisions lives under [`adr/`](./adr).
 
 ## Functional Requirements
 
