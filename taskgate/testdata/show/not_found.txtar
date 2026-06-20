@@ -1,5 +1,9 @@
-# A name that does not resolve produces a non-zero exit with a clear
-# `not found` stderr message that names the audience scope.
+# A name that does not resolve to any entry in the merged view.
+#
+# Contract (exit 3):
+#   - Exit code 3. Stable.
+#   - stderr names the audience scope that was searched (audience bucket
+#     and shared bucket).
 
 ! exec taskgate show no-such-task
 ! stdout .

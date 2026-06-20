@@ -1,5 +1,8 @@
-# `taskgate list` was removed in favour of `taskgate show`. Invoking it
-# must surface cobra's "unknown command" error and exit non-zero.
+# `taskgate list` and `taskgate ai list` were removed in favour of
+# `taskgate show` / `taskgate ai show`. Invoking the old names must surface
+# cobra's "unknown command" error and exit non-zero.
+#
+# Contract: no alias, no deprecation shim. Callers must migrate.
 
 ! exec taskgate list
 stderr 'unknown command'

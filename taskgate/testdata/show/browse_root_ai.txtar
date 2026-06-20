@@ -1,5 +1,18 @@
 # `taskgate ai show` with no argument merges shared/ ∪ ai/ (not human/) and
 # emits a `listing` envelope on stdout.
+#
+# Contract (listing shape):
+#   {
+#     "kind":     "listing",                       // required, literal
+#     "audience": "human" | "ai",                  // required
+#     "entries":  [                                // required, may be []
+#       {"path": string, "kind": "task" | "directory", "summary": string | null}
+#     ]
+#   }
+# Compact JSON, terminated by exactly one trailing \n.
+# Children carry path + kind + summary only — never body, never nested
+# entries (no recursion). Sort: directories first, then tasks; basename
+# case-sensitive within each group.
 
 exec taskgate ai show
 stdout '"kind":"listing"'

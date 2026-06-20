@@ -1,5 +1,9 @@
-# A task with no summary annotation must still produce a `task` record
-# whose `summary` field is the explicit JSON `null`, not omitted.
+# A task with no summary annotation: `summary` is the explicit JSON `null`.
+#
+# Contract (null vs omit rule, applies to task / directory / child records):
+#   - `summary` is ALWAYS present on records describing an entry; `null`
+#     when no summary was extracted. Never omitted.
+#   - `body` is OMITTED when there is no body. Never `null`.
 
 exec taskgate ai show bare
 stdout '"kind":"task"'
