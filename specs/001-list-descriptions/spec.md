@@ -28,8 +28,8 @@ The AI-facing form of the show command emits the same information (path, summary
 
 ## Related
 
-- **Functional requirements**: [`docs/requirements.md`](../../docs/requirements.md)
-- **Acceptance scenarios** (executable tests): [`tests/features/*.feature`](../../tests/features) — run via `uv run pytest` or `taskgate run e2e`
+- **Functional requirements**: [`docs/show/requirements.md`](../../docs/show/requirements.md)
+- **Acceptance scenarios** (executable tests): [`tests/features/show/*.feature`](../../tests/features/show) — run via `uv run pytest` or `taskgate run e2e`
 - **Design decisions** (ADRs): [`docs/adr/`](../../docs/adr)
 - **Vocabulary**: [`docs/glossary.md`](../../docs/glossary.md)
 
