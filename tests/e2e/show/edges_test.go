@@ -45,7 +45,10 @@ var _ = Describe("taskgate show: whitespace-only summary treated as empty", func
 			out := ws.Run("show")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(".taskgate/human/build\n"))
+			Expect(out.Stdout).To(Equal(testutil.Lines(
+				".taskgate/human/build",
+				"",
+			)))
 		})
 	})
 })
@@ -63,7 +66,10 @@ var _ = Describe("taskgate show: leading comments before YAML envelope are skipp
 			out := ws.Run("show")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(".taskgate/human/build\tBuild the project.\n"))
+			Expect(out.Stdout).To(Equal(testutil.Lines(
+				testutil.Cols(".taskgate/human/build", "Build the project."),
+				"",
+			)))
 		})
 	})
 })

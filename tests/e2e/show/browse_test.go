@@ -23,10 +23,11 @@ var _ = Describe("taskgate show: FR-001 — root browse merges human/ and shared
 			out := ws.Run("show")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(
-				".taskgate/human/build\tBuild the project for the current platform.\n" +
-					".taskgate/shared/lint\tLint the codebase with project rules.\n",
-			))
+			Expect(out.Stdout).To(Equal(testutil.Lines(
+				testutil.Cols(".taskgate/human/build", "Build the project for the current platform."),
+				testutil.Cols(".taskgate/shared/lint", "Lint the codebase with project rules."),
+				"",
+			)))
 		})
 	})
 })
@@ -44,7 +45,10 @@ var _ = Describe("taskgate show: unannotated tasks still appear in root browse",
 			out := ws.Run("show")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(".taskgate/shared/bare\n"))
+			Expect(out.Stdout).To(Equal(testutil.Lines(
+				".taskgate/shared/bare",
+				"",
+			)))
 		})
 	})
 })
