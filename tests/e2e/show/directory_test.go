@@ -6,14 +6,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/ynny-github/taskgate/tests/e2e/support"
+	"github.com/ynny-github/taskgate/tests/e2e/testutil"
 )
 
 var _ = Describe("taskgate show: directory with _index shows path, summary, body, then children", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("directory with _index", func() {
@@ -30,10 +30,10 @@ var _ = Describe("taskgate show: directory with _index shows path, summary, body
 })
 
 var _ = Describe("taskgate show: directory without _index shows path only then children", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("directory without _index", func() {
@@ -49,10 +49,10 @@ var _ = Describe("taskgate show: directory without _index shows path only then c
 })
 
 var _ = Describe("taskgate show: directory listing is not recursive", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("nested sub-directory", func() {
@@ -69,10 +69,10 @@ var _ = Describe("taskgate show: directory listing is not recursive", func() {
 })
 
 var _ = Describe("taskgate show: malformed _index does not abort listing", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("malformed _index", func() {
@@ -89,10 +89,10 @@ var _ = Describe("taskgate show: malformed _index does not abort listing", func(
 })
 
 var _ = Describe("taskgate show: runnable _index supplies annotation and is not double-listed", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("runnable _index", func() {
@@ -108,10 +108,10 @@ var _ = Describe("taskgate show: runnable _index supplies annotation and is not 
 })
 
 var _ = Describe("taskgate show: no truncation with many children", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("50 children", func() {
@@ -127,10 +127,10 @@ var _ = Describe("taskgate show: no truncation with many children", func() {
 })
 
 var _ = Describe("taskgate ai show: FR-007 — directory envelope shape", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("directory envelope", func() {

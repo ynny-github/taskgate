@@ -7,14 +7,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/ynny-github/taskgate/tests/e2e/support"
+	"github.com/ynny-github/taskgate/tests/e2e/testutil"
 )
 
 var _ = Describe("taskgate show: task inspection prints path, summary, and body", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("task with summary and body", func() {
@@ -29,10 +29,10 @@ var _ = Describe("taskgate show: task inspection prints path, summary, and body"
 })
 
 var _ = Describe("taskgate show: task with no body omits body section entirely", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("task with summary only", func() {
@@ -47,10 +47,10 @@ var _ = Describe("taskgate show: task with no body omits body section entirely",
 })
 
 var _ = Describe("taskgate ai show: FR-006 — AI task envelope shape", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("task envelope", func() {
@@ -76,10 +76,10 @@ var _ = Describe("taskgate ai show: FR-006 — AI task envelope shape", func() {
 })
 
 var _ = Describe("taskgate ai show: ADR-0003 — bare task has null summary", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("bare task with no annotation", func() {

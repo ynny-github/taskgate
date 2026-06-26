@@ -4,15 +4,15 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/ynny-github/taskgate/tests/e2e/support"
+	"github.com/ynny-github/taskgate/tests/e2e/testutil"
 )
 
 // collision content (moved from collision_test.go)
 var _ = Describe("taskgate show: FR-013 — collision is a hard error", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 		ws.WriteAnnotatedTask(".taskgate/human/build", "human variant", "")
 		ws.WriteAnnotatedTask(".taskgate/shared/build", "shared variant", "")
 	})
@@ -39,10 +39,10 @@ var _ = Describe("taskgate show: FR-013 — collision is a hard error", func() {
 })
 
 var _ = Describe("taskgate show: FR-014 — not-found name exits 3", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 		ws.WriteAnnotatedTask(".taskgate/human/build", "Build.", "")
 	})
 
@@ -59,10 +59,10 @@ var _ = Describe("taskgate show: FR-014 — not-found name exits 3", func() {
 })
 
 var _ = Describe("taskgate show: FR-015 — filesystem-shaped arguments are rejected", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 		ws.WriteAnnotatedTask(".taskgate/human/build", "Build.", "")
 	})
 
@@ -104,11 +104,11 @@ var _ = Describe("taskgate show: FR-015 — filesystem-shaped arguments are reje
 })
 
 var _ = Describe("taskgate show: FR-016 — missing workspace exits 5", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
 		// No .taskgate/ directory — workspace is empty
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("no .taskgate/ directory", func() {
@@ -122,10 +122,10 @@ var _ = Describe("taskgate show: FR-016 — missing workspace exits 5", func() {
 })
 
 var _ = Describe("taskgate show: legacy list subcommand removed", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("taskgate list", func() {

@@ -6,14 +6,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/ynny-github/taskgate/tests/e2e/support"
+	"github.com/ynny-github/taskgate/tests/e2e/testutil"
 )
 
 var _ = Describe("taskgate show: unreadable file does not abort listing", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("unreadable task", func() {
@@ -33,10 +33,10 @@ var _ = Describe("taskgate show: unreadable file does not abort listing", func()
 })
 
 var _ = Describe("taskgate show: whitespace-only summary treated as empty", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("whitespace-only summary", func() {
@@ -51,10 +51,10 @@ var _ = Describe("taskgate show: whitespace-only summary treated as empty", func
 })
 
 var _ = Describe("taskgate show: leading comments before YAML envelope are skipped", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("shellcheck pragma and copyright header before annotation", func() {
@@ -69,10 +69,10 @@ var _ = Describe("taskgate show: leading comments before YAML envelope are skipp
 })
 
 var _ = Describe("taskgate show: symlinks escaping .taskgate/ are listed but not read", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("symlink escape", func() {

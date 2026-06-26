@@ -1,5 +1,5 @@
-// Package support holds shared helpers for the taskgate E2E suite.
-package support
+// Package testutil holds shared helpers for the taskgate E2E suite.
+package testutil
 
 import (
 	"fmt"

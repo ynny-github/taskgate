@@ -6,14 +6,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/ynny-github/taskgate/tests/e2e/support"
+	"github.com/ynny-github/taskgate/tests/e2e/testutil"
 )
 
 var _ = Describe("taskgate show: FR-001 — root browse merges human/ and shared/", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("annotated tasks from both buckets", func() {
@@ -29,10 +29,10 @@ var _ = Describe("taskgate show: FR-001 — root browse merges human/ and shared
 })
 
 var _ = Describe("taskgate show: unannotated tasks still appear in root browse", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
 	Context("bare task with no annotation", func() {
@@ -47,10 +47,10 @@ var _ = Describe("taskgate show: unannotated tasks still appear in root browse",
 })
 
 var _ = Describe("taskgate ai show: FR-001 — ai browse merges shared/ and ai/, excludes human/", func() {
-	var ws *support.Workspace
+	var ws *testutil.Workspace
 
 	BeforeEach(func() {
-		ws = support.New(GinkgoT().TempDir(), TaskgateBinary)
+		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 		ws.WriteAnnotatedTask(".taskgate/human/build", "Build.", "")
 		ws.WriteAnnotatedTask(".taskgate/shared/lint", "Lint.", "")
 		ws.WriteAnnotatedTask(".taskgate/ai/analyze", "Analyze.", "")
