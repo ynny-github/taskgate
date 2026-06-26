@@ -24,7 +24,16 @@ var _ = Describe("taskgate show: directory with _index shows path, summary, body
 			out := ws.Run("show", "deploy")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(".taskgate/human/deploy\n\n  Promote a build to an environment.\n\nIdempotent across reruns.\n\n.taskgate/human/deploy/canary\tPromote to canary.\n.taskgate/human/deploy/prod\tPromote to production.\n"))
+			Expect(out.Stdout).To(Equal(
+				".taskgate/human/deploy\n" +
+					"\n" +
+					"  Promote a build to an environment.\n" +
+					"\n" +
+					"Idempotent across reruns.\n" +
+					"\n" +
+					".taskgate/human/deploy/canary\tPromote to canary.\n" +
+					".taskgate/human/deploy/prod\tPromote to production.\n",
+			))
 		})
 	})
 })
@@ -43,7 +52,12 @@ var _ = Describe("taskgate show: directory without _index shows path only then c
 			out := ws.Run("show", "deploy")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(".taskgate/human/deploy\n\n.taskgate/human/deploy/canary\tPromote to canary.\n.taskgate/human/deploy/prod\tPromote to production.\n"))
+			Expect(out.Stdout).To(Equal(
+				".taskgate/human/deploy\n" +
+					"\n" +
+					".taskgate/human/deploy/canary\tPromote to canary.\n" +
+					".taskgate/human/deploy/prod\tPromote to production.\n",
+			))
 		})
 	})
 })
@@ -63,7 +77,13 @@ var _ = Describe("taskgate show: directory listing is not recursive", func() {
 			out := ws.Run("show", "deploy")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(".taskgate/human/deploy\n\n  Promote a build.\n\n.taskgate/human/deploy/prod/\tProd target.\n"))
+			Expect(out.Stdout).To(Equal(
+				".taskgate/human/deploy\n" +
+					"\n" +
+					"  Promote a build.\n" +
+					"\n" +
+					".taskgate/human/deploy/prod/\tProd target.\n",
+			))
 		})
 	})
 })
@@ -102,7 +122,15 @@ var _ = Describe("taskgate show: runnable _index supplies annotation and is not 
 			out := ws.Run("show", "deploy")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(".taskgate/human/deploy\n\n  Promote a build.\n\nIdempotent.\n\n.taskgate/human/deploy/prod\tPromote to production.\n"))
+			Expect(out.Stdout).To(Equal(
+				".taskgate/human/deploy\n" +
+					"\n" +
+					"  Promote a build.\n" +
+					"\n" +
+					"Idempotent.\n" +
+					"\n" +
+					".taskgate/human/deploy/prod\tPromote to production.\n",
+			))
 		})
 	})
 })

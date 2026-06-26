@@ -19,11 +19,23 @@ var _ = Describe("taskgate show: task inspection prints path, summary, and body"
 
 	Context("task with summary and body", func() {
 		It("shows all three sections", func() {
-			ws.WriteAnnotatedTask(".taskgate/human/build", "Build the project.", "Reads VERSION from the environment.\nExits non-zero on build failure.")
+			ws.WriteAnnotatedTask(
+				".taskgate/human/build",
+				"Build the project.",
+				"Reads VERSION from the environment.\n"+
+					"Exits non-zero on build failure.",
+			)
 			out := ws.Run("show", "build")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(".taskgate/human/build\n\n  Build the project.\n\nReads VERSION from the environment.\nExits non-zero on build failure.\n"))
+			Expect(out.Stdout).To(Equal(
+				".taskgate/human/build\n" +
+					"\n" +
+					"  Build the project.\n" +
+					"\n" +
+					"Reads VERSION from the environment.\n" +
+					"Exits non-zero on build failure.\n",
+			))
 		})
 	})
 })
@@ -41,7 +53,11 @@ var _ = Describe("taskgate show: task with no body omits body section entirely",
 			out := ws.Run("show", "build")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(".taskgate/human/build\n\n  Build the project.\n"))
+			Expect(out.Stdout).To(Equal(
+				".taskgate/human/build\n" +
+					"\n" +
+					"  Build the project.\n",
+			))
 		})
 	})
 })

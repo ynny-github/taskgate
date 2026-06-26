@@ -23,7 +23,10 @@ var _ = Describe("taskgate show: FR-001 — root browse merges human/ and shared
 			out := ws.Run("show")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(".taskgate/human/build\tBuild the project for the current platform.\n.taskgate/shared/lint\tLint the codebase with project rules.\n"))
+			Expect(out.Stdout).To(Equal(
+				".taskgate/human/build\tBuild the project for the current platform.\n" +
+					".taskgate/shared/lint\tLint the codebase with project rules.\n",
+			))
 		})
 	})
 })
