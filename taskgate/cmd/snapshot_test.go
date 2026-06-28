@@ -2,8 +2,10 @@
 package cmd
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -145,5 +147,25 @@ func TestSnapshotDirName(t *testing.T) {
 	}
 	if a == b {
 		t.Error("expected different names for roots that share a basename")
+	}
+}
+
+func TestSnapshotPath_PrintsResolvedDir(t *testing.T) {
+	snapshotDirOverride = func(cwd string) (string, error) {
+		return filepath.Join("/snap", filepath.Base(cwd)), nil
+	}
+	t.Cleanup(func() { snapshotDirOverride = nil })
+
+	var out bytes.Buffer
+	root := newRootCmd()
+	root.SetOut(&out)
+	root.SetArgs([]string{"snapshot", "path", "/Users/yn/work/taskgate"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := strings.TrimSpace(out.String())
+	if got != "/snap/taskgate" {
+		t.Errorf("expected /snap/taskgate, got %q", got)
 	}
 }

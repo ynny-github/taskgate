@@ -17,6 +17,7 @@ func newSnapshotCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 	snapshotCmd.AddCommand(newSnapshotInstallCmd())
+	snapshotCmd.AddCommand(newSnapshotPathCmd())
 	return snapshotCmd
 }
 
@@ -117,4 +118,42 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return out.Close()
+}
+
+func resolveSnapshotDir(args []string) (string, error) {
+	var workdir string
+	if len(args) == 1 {
+		workdir = args[0]
+	} else {
+		var err error
+		workdir, err = os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("cannot determine working directory: %w", err)
+		}
+	}
+
+	dirFn := snapshotDirFn
+	if snapshotDirOverride != nil {
+		dirFn = snapshotDirOverride
+	}
+	return dirFn(workdir)
+}
+
+func newSnapshotPathCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:           "path [path]",
+		Short:         "Print the snapshot directory for a project",
+		Args:          cobra.MaximumNArgs(1),
+		RunE:          snapshotPath,
+		SilenceErrors: true,
+	}
+}
+
+func snapshotPath(cmd *cobra.Command, args []string) error {
+	dir, err := resolveSnapshotDir(args)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(cmd.OutOrStdout(), dir)
+	return nil
 }
