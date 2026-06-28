@@ -132,3 +132,18 @@ func TestSnapshotInstall_CreatesSnapshotDir(t *testing.T) {
 		t.Errorf("expected snapshot dir to be created: %v", err)
 	}
 }
+
+func TestSnapshotDirName(t *testing.T) {
+	a := snapshotDirName("/Users/yn/work/taskgate")
+	b := snapshotDirName("/Users/yn/other/taskgate")
+
+	if len(a) != 12 {
+		t.Errorf("expected 12-char name, got %q (len %d)", a, len(a))
+	}
+	if a != snapshotDirName("/Users/yn/work/taskgate") {
+		t.Error("expected stable name for the same root")
+	}
+	if a == b {
+		t.Error("expected different names for roots that share a basename")
+	}
+}
