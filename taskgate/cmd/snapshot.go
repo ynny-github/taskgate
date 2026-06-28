@@ -18,6 +18,7 @@ func newSnapshotCmd() *cobra.Command {
 	}
 	snapshotCmd.AddCommand(newSnapshotInstallCmd())
 	snapshotCmd.AddCommand(newSnapshotPathCmd())
+	snapshotCmd.AddCommand(newSnapshotDeleteCmd())
 	return snapshotCmd
 }
 
@@ -155,5 +156,45 @@ func snapshotPath(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), dir)
+	return nil
+}
+
+func newSnapshotDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:           "delete [path]",
+		Short:         "Delete a project's snapshot directory",
+		Args:          cobra.MaximumNArgs(1),
+		RunE:          snapshotDelete,
+		SilenceErrors: true,
+	}
+}
+
+func snapshotDelete(cmd *cobra.Command, args []string) error {
+	dir, err := resolveSnapshotDir(args)
+	if err != nil {
+		return err
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Fprintf(cmd.OutOrStdout(), "no snapshot found at %s\n", dir)
+			return nil
+		}
+		return fmt.Errorf("cannot read snapshot directory: %w", err)
+	}
+
+	count := 0
+	for _, e := range entries {
+		if !e.IsDir() {
+			count++
+		}
+	}
+
+	if err := os.RemoveAll(dir); err != nil {
+		return fmt.Errorf("cannot delete snapshot directory: %w", err)
+	}
+
+	fmt.Fprintf(cmd.OutOrStdout(), "deleted %d script(s) from %s\n", count, dir)
 	return nil
 }
