@@ -7,7 +7,13 @@
     "deny": [
       "Read(~/.config/gh/**)",
       "Glob(~/.config/gh/**)",
-      "Grep(~/.config/gh/**)"
+      "Grep(~/.config/gh/**)",
+      "Read(~/.ssh/**)",
+      "Glob(~/.ssh/**)",
+      "Grep(~/.ssh/**)",
+      "Read(~/.docker/**)",
+      "Glob(~/.docker/**)",
+      "Grep(~/.docker/**)"
     ]
   },
   "autoMode": {

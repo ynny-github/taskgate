@@ -1,8 +1,5 @@
 # common
 tmp/
 
-# go
-.go/
-
 # speckit
 .specify/feature.json
