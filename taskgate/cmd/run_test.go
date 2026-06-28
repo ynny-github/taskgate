@@ -166,6 +166,7 @@ func TestRunCmd_SetsProjectRoot(t *testing.T) {
 func TestRunCmd_NoProjectRoot_OutsideRepo(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("GIT_CEILING_DIRECTORIES", tmp)
+	t.Setenv("TASKGATE_PROJECT_ROOT", "")
 	makeHumanScript(t, tmp, "print-root", "#!/bin/sh\necho \"${TASKGATE_PROJECT_ROOT:-UNSET}\"")
 
 	origDir, err := os.Getwd()

@@ -1,0 +1,6 @@
+.taskgate/human/build
+
+  Build the project.
+
+Reads VERSION from the environment.
+Exits non-zero on build failure.

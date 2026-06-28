@@ -1,0 +1,8 @@
+.taskgate/human/deploy
+
+  Promote a build to an environment.
+
+Idempotent across reruns.
+
+.taskgate/human/deploy/canary	Promote to canary.
+.taskgate/human/deploy/prod	Promote to production.

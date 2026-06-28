@@ -1,0 +1,17 @@
+#!/bin/sh
+# ---
+# summary: Run the Ginkgo E2E suite against the built taskgate binary.
+# body: |
+#   Runs `go test ./tests/e2e/...` from the project root. The suite-scoped
+#   BeforeSuite in tests/e2e/show/show_suite_test.go rebuilds the binary
+#   via `go build ./taskgate` before the first spec, so changes to
+#   production code are picked up automatically.
+#
+#   Extra go test flags are passed through, e.g.
+#     taskgate run e2e -- -v
+#     taskgate run e2e -- -run "collision"
+# ---
+set -eu
+
+cd "${TASKGATE_PROJECT_ROOT:-$(pwd)}"
+go test "$@" ./tests/e2e/...

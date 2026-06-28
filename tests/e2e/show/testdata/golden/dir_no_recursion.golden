@@ -1,0 +1,5 @@
+.taskgate/human/deploy
+
+  Promote a build.
+
+.taskgate/human/deploy/prod/	Prod target.

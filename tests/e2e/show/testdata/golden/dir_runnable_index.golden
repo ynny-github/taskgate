@@ -1,0 +1,7 @@
+.taskgate/human/deploy
+
+  Promote a build.
+
+Idempotent.
+
+.taskgate/human/deploy/prod	Promote to production.
