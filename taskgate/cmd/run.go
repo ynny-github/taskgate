@@ -31,7 +31,8 @@ func runTask(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot determine working directory: %w", err)
 	}
 
-	taskPath, err := resolveHumanTask(cwd, taskName)
+	root := detectProjectRoot(cwd)
+	taskPath, err := resolveHumanTask(root, taskName)
 	if err != nil {
 		return err
 	}
@@ -41,30 +42,46 @@ func runTask(cmd *cobra.Command, args []string) error {
 	c.Stderr = cmd.ErrOrStderr()
 	c.Stdin = os.Stdin
 
-	if root := detectProjectRoot(cwd); root != "" {
-		env := make([]string, 0, len(os.Environ())+1)
-		for _, e := range os.Environ() {
-			if !strings.HasPrefix(e, "TASKGATE_PROJECT_ROOT=") {
-				env = append(env, e)
-			}
+	// Always manage TASKGATE_PROJECT_ROOT: set it if a project root is found,
+	// otherwise ensure it's not passed to the child process.
+	env := make([]string, 0, len(os.Environ())+1)
+	for _, e := range os.Environ() {
+		if !strings.HasPrefix(e, "TASKGATE_PROJECT_ROOT=") {
+			env = append(env, e)
 		}
-		c.Env = append(env, "TASKGATE_PROJECT_ROOT="+root)
 	}
+	if root != "" {
+		env = append(env, "TASKGATE_PROJECT_ROOT="+root)
+	}
+	c.Env = env
 
 	return c.Run()
 }
 
 func detectProjectRoot(cwd string) string {
-	out, err := exec.Command("git", "-C", cwd, "rev-parse", "--show-toplevel").Output()
+	dir, err := filepath.Abs(cwd)
 	if err != nil {
 		return ""
 	}
-	return strings.TrimSpace(string(out))
+	for {
+		marker := filepath.Join(dir, ".taskgate")
+		if info, err := os.Stat(marker); err == nil && info.IsDir() {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+		dir = parent
+	}
 }
 
-func resolveHumanTask(cwd, taskName string) (string, error) {
+func resolveHumanTask(root, taskName string) (string, error) {
+	if root == "" {
+		return "", fmt.Errorf("task %q not found in .taskgate/human/ or .taskgate/shared/", taskName)
+	}
 	for _, subdir := range []string{"human", "shared"} {
-		path := filepath.Join(cwd, ".taskgate", subdir, taskName)
+		path := filepath.Join(root, ".taskgate", subdir, taskName)
 		info, err := os.Stat(path)
 		if os.IsNotExist(err) {
 			continue

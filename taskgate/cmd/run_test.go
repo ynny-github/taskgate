@@ -165,19 +165,29 @@ func TestRunCmd_SetsProjectRoot(t *testing.T) {
 
 func TestRunCmd_NoProjectRoot_OutsideRepo(t *testing.T) {
 	tmp := t.TempDir()
-	t.Setenv("GIT_CEILING_DIRECTORIES", tmp)
-	t.Setenv("TASKGATE_PROJECT_ROOT", "")
-	makeHumanScript(t, tmp, "print-root", "#!/bin/sh\necho \"${TASKGATE_PROJECT_ROOT:-UNSET}\"")
+	realTmp, err := filepath.EvalSymlinks(tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Create .taskgate/human/ at the root.
+	makeHumanScript(t, realTmp, "print-root", "#!/bin/sh\necho \"$TASKGATE_PROJECT_ROOT\"")
+
+	// Create a subdirectory and change into it.
+	subdir := filepath.Join(realTmp, "sub")
+	if err := os.Mkdir(subdir, 0755); err != nil {
+		t.Fatal(err)
+	}
 
 	origDir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Chdir(tmp); err != nil {
+	if err := os.Chdir(subdir); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.Chdir(origDir) })
 
+	// Run from the subdirectory; the project root should be found in the parent.
 	var buf bytes.Buffer
 	root := newRootCmd()
 	root.SetArgs([]string{"run", "print-root"})
@@ -186,8 +196,8 @@ func TestRunCmd_NoProjectRoot_OutsideRepo(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	got := strings.TrimSpace(buf.String())
-	if got != "UNSET" {
-		t.Errorf("expected TASKGATE_PROJECT_ROOT to be unset, got %q", got)
+	if got != realTmp {
+		t.Errorf("TASKGATE_PROJECT_ROOT = %q, want %q (parent project root)", got, realTmp)
 	}
 }
 
@@ -214,5 +224,63 @@ func TestRunCmd_PassesFlagStyleArgs(t *testing.T) {
 	got := strings.TrimSpace(buf.String())
 	if got != "--foo bar" {
 		t.Errorf("got %q, want %q", got, "--foo bar")
+	}
+}
+
+func TestDetectProjectRoot_FindsMarkerInParent(t *testing.T) {
+	tmp := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tmp, ".taskgate"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	sub := filepath.Join(tmp, "a", "b")
+	if err := os.MkdirAll(sub, 0755); err != nil {
+		t.Fatal(err)
+	}
+	got := detectProjectRoot(sub)
+	if got != tmp {
+		t.Errorf("detectProjectRoot(%q) = %q, want %q", sub, got, tmp)
+	}
+}
+
+func TestDetectProjectRoot_NoMarkerReturnsEmpty(t *testing.T) {
+	tmp := t.TempDir()
+	sub := filepath.Join(tmp, "a", "b")
+	if err := os.MkdirAll(sub, 0755); err != nil {
+		t.Fatal(err)
+	}
+	got := detectProjectRoot(sub)
+	if got != "" {
+		t.Errorf("detectProjectRoot(%q) = %q, want empty", sub, got)
+	}
+}
+
+func TestDetectProjectRoot_NearestAncestorWins(t *testing.T) {
+	tmp := t.TempDir()
+	outer := filepath.Join(tmp, "outer")
+	inner := filepath.Join(outer, "inner")
+	if err := os.MkdirAll(filepath.Join(outer, ".taskgate"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(inner, ".taskgate"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	start := filepath.Join(inner, "x")
+	if err := os.MkdirAll(start, 0755); err != nil {
+		t.Fatal(err)
+	}
+	got := detectProjectRoot(start)
+	if got != inner {
+		t.Errorf("detectProjectRoot(%q) = %q, want %q", start, got, inner)
+	}
+}
+
+func TestDetectProjectRoot_IgnoresMarkerFile(t *testing.T) {
+	tmp := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tmp, ".taskgate"), []byte("not a dir"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	got := detectProjectRoot(tmp)
+	if got != "" {
+		t.Errorf("detectProjectRoot(%q) = %q, want empty (.taskgate is a file)", tmp, got)
 	}
 }
