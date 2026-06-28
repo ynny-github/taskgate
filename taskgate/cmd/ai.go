@@ -3,6 +3,8 @@ package cmd
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,6 +17,11 @@ import (
 // snapshotDirOverride is set in tests to bypass git root detection.
 var snapshotDirOverride func(cwd string) (string, error)
 
+func snapshotDirName(root string) string {
+	sum := sha256.Sum256([]byte(root))
+	return hex.EncodeToString(sum[:])[:12]
+}
+
 func snapshotDirFn(cwd string) (string, error) {
 	root := detectProjectRoot(cwd)
 	if root == "" {
@@ -24,7 +31,7 @@ func snapshotDirFn(cwd string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	return filepath.Join(home, ".taskgate", "snapshots", filepath.Base(root)), nil
+	return filepath.Join(home, ".taskgate", "snapshots", snapshotDirName(root)), nil
 }
 
 func newAICmd() *cobra.Command {
