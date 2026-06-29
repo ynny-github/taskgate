@@ -45,7 +45,8 @@ func snapshotInstall(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	taskgateDir := filepath.Join(cwd, ".taskgate")
+	root := detectProjectRoot(cwd)
+	taskgateDir := filepath.Join(root, ".taskgate")
 	aiScripts, err := listScripts(filepath.Join(taskgateDir, "ai"))
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("cannot read .taskgate/ai/: %w", err)
