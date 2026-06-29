@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// snapshotDirOverride is set in tests to bypass git root detection.
+// snapshotDirOverride is set in tests to bypass project-root detection and snapshot-path resolution.
 var snapshotDirOverride func(cwd string) (string, error)
 
 func snapshotDirFn(cwd string) (string, error) {
