@@ -136,9 +136,6 @@ func TestRunCmd_SetsProjectRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out, err := exec.Command("git", "init", realTmp).CombinedOutput(); err != nil {
-		t.Fatalf("git init: %v\n%s", err, out)
-	}
 	makeHumanScript(t, realTmp, "print-root", "#!/bin/sh\necho \"$TASKGATE_PROJECT_ROOT\"")
 
 	origDir, err := os.Getwd()
@@ -163,7 +160,7 @@ func TestRunCmd_SetsProjectRoot(t *testing.T) {
 	}
 }
 
-func TestRunCmd_NoProjectRoot_OutsideRepo(t *testing.T) {
+func TestRunCmd_ResolvesTaskFromSubdir(t *testing.T) {
 	tmp := t.TempDir()
 	realTmp, err := filepath.EvalSymlinks(tmp)
 	if err != nil {
@@ -198,6 +195,30 @@ func TestRunCmd_NoProjectRoot_OutsideRepo(t *testing.T) {
 	got := strings.TrimSpace(buf.String())
 	if got != realTmp {
 		t.Errorf("TASKGATE_PROJECT_ROOT = %q, want %q (parent project root)", got, realTmp)
+	}
+}
+
+func TestRunCmd_NoMarker_TaskNotFound(t *testing.T) {
+	tmp := t.TempDir()
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+
+	root := newRootCmd()
+	root.SetArgs([]string{"run", "ghost"})
+	err = root.Execute()
+	if err == nil {
+		t.Fatal("expected error when no .taskgate marker exists, got nil")
+	}
+	want := `task "ghost" not found in .taskgate/human/ or .taskgate/shared/`
+	if err.Error() != want {
+		t.Errorf("got %q, want %q", err.Error(), want)
 	}
 }
 
