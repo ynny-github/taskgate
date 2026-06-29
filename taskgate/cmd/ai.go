@@ -18,13 +18,17 @@ var snapshotDirOverride func(cwd string) (string, error)
 func snapshotDirFn(cwd string) (string, error) {
 	root := detectProjectRoot(cwd)
 	if root == "" {
-		return "", fmt.Errorf("cannot determine project root: not in a git repository")
+		return "", fmt.Errorf("cannot determine project root: .taskgate directory not found")
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("cannot determine home directory: %w", err)
+	stateHome := os.Getenv("XDG_STATE_HOME")
+	if stateHome == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("cannot determine home directory: %w", err)
+		}
+		stateHome = filepath.Join(home, ".local", "state")
 	}
-	return filepath.Join(home, ".taskgate", "snapshots", filepath.Base(root)), nil
+	return filepath.Join(stateHome, "taskgate", "snapshots", filepath.Base(root)), nil
 }
 
 func newAICmd() *cobra.Command {
