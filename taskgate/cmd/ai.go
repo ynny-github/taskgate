@@ -81,7 +81,9 @@ func runAITask(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := checkSnapshotFresh(cwd, taskName, taskPath); err != nil {
+	root := detectProjectRoot(cwd)
+
+	if err := checkSnapshotFresh(root, taskName, taskPath); err != nil {
 		fmt.Fprintln(cmd.ErrOrStderr(), err.Error())
 		return err
 	}
@@ -91,7 +93,7 @@ func runAITask(cmd *cobra.Command, args []string) error {
 	c.Stderr = cmd.ErrOrStderr()
 	c.Stdin = os.Stdin
 
-	if root := detectProjectRoot(cwd); root != "" {
+	if root != "" {
 		env := make([]string, 0, len(os.Environ())+1)
 		for _, e := range os.Environ() {
 			if !strings.HasPrefix(e, "TASKGATE_PROJECT_ROOT=") {
@@ -104,10 +106,13 @@ func runAITask(cmd *cobra.Command, args []string) error {
 	return c.Run()
 }
 
-func checkSnapshotFresh(cwd, taskName, snapshotPath string) error {
+func checkSnapshotFresh(root, taskName, snapshotPath string) error {
+	if root == "" {
+		return nil
+	}
 	var sourcePath string
 	for _, subdir := range []string{"ai", "shared"} {
-		p := filepath.Join(cwd, ".taskgate", subdir, taskName)
+		p := filepath.Join(root, ".taskgate", subdir, taskName)
 		if _, err := os.Stat(p); err == nil {
 			sourcePath = p
 			break
