@@ -17,6 +17,8 @@ func newSnapshotCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 	snapshotCmd.AddCommand(newSnapshotInstallCmd())
+	snapshotCmd.AddCommand(newSnapshotPathCmd())
+	snapshotCmd.AddCommand(newSnapshotDeleteCmd())
 	return snapshotCmd
 }
 
@@ -117,4 +119,82 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return out.Close()
+}
+
+func resolveSnapshotDir(args []string) (string, error) {
+	var workdir string
+	if len(args) == 1 {
+		workdir = args[0]
+	} else {
+		var err error
+		workdir, err = os.Getwd()
+		if err != nil {
+			return "", fmt.Errorf("cannot determine working directory: %w", err)
+		}
+	}
+
+	dirFn := snapshotDirFn
+	if snapshotDirOverride != nil {
+		dirFn = snapshotDirOverride
+	}
+	return dirFn(workdir)
+}
+
+func newSnapshotPathCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:           "path [path]",
+		Short:         "Print the snapshot directory for a project",
+		Args:          cobra.MaximumNArgs(1),
+		RunE:          snapshotPath,
+		SilenceErrors: true,
+	}
+}
+
+func snapshotPath(cmd *cobra.Command, args []string) error {
+	dir, err := resolveSnapshotDir(args)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(cmd.OutOrStdout(), dir)
+	return nil
+}
+
+func newSnapshotDeleteCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:           "delete [path]",
+		Short:         "Delete a project's snapshot directory",
+		Args:          cobra.MaximumNArgs(1),
+		RunE:          snapshotDelete,
+		SilenceErrors: true,
+	}
+}
+
+func snapshotDelete(cmd *cobra.Command, args []string) error {
+	dir, err := resolveSnapshotDir(args)
+	if err != nil {
+		return err
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Fprintf(cmd.OutOrStdout(), "no snapshot found at %s\n", dir)
+			return nil
+		}
+		return fmt.Errorf("cannot read snapshot directory: %w", err)
+	}
+
+	count := 0
+	for _, e := range entries {
+		if !e.IsDir() {
+			count++
+		}
+	}
+
+	if err := os.RemoveAll(dir); err != nil {
+		return fmt.Errorf("cannot delete snapshot directory: %w", err)
+	}
+
+	fmt.Fprintf(cmd.OutOrStdout(), "deleted %d script(s) from %s\n", count, dir)
+	return nil
 }

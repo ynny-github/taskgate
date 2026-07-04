@@ -2,8 +2,10 @@
 package cmd
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -130,5 +132,82 @@ func TestSnapshotInstall_CreatesSnapshotDir(t *testing.T) {
 	}
 	if _, err := os.Stat(snapDir); err != nil {
 		t.Errorf("expected snapshot dir to be created: %v", err)
+	}
+}
+
+func TestSnapshotDirName(t *testing.T) {
+	a := snapshotDirName("/Users/yn/work/taskgate")
+	b := snapshotDirName("/Users/yn/other/taskgate")
+
+	if len(a) != 12 {
+		t.Errorf("expected 12-char name, got %q (len %d)", a, len(a))
+	}
+	if a != snapshotDirName("/Users/yn/work/taskgate") {
+		t.Error("expected stable name for the same root")
+	}
+	if a == b {
+		t.Error("expected different names for roots that share a basename")
+	}
+}
+
+func TestSnapshotPath_PrintsResolvedDir(t *testing.T) {
+	snapshotDirOverride = func(cwd string) (string, error) {
+		return filepath.Join("/snap", filepath.Base(cwd)), nil
+	}
+	t.Cleanup(func() { snapshotDirOverride = nil })
+
+	var out bytes.Buffer
+	root := newRootCmd()
+	root.SetOut(&out)
+	root.SetArgs([]string{"snapshot", "path", "/Users/yn/work/taskgate"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := strings.TrimSpace(out.String())
+	if got != "/snap/taskgate" {
+		t.Errorf("expected /snap/taskgate, got %q", got)
+	}
+}
+
+func TestSnapshotDelete_RemovesDirAndReportsCount(t *testing.T) {
+	snapDir := t.TempDir()
+	makeScript(t, snapDir, "deploy", "#!/bin/sh\necho deploy")
+	makeScript(t, snapDir, "build", "#!/bin/sh\necho build")
+
+	snapshotDirOverride = func(string) (string, error) { return snapDir, nil }
+	t.Cleanup(func() { snapshotDirOverride = nil })
+
+	var out bytes.Buffer
+	root := newRootCmd()
+	root.SetOut(&out)
+	root.SetArgs([]string{"snapshot", "delete"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, err := os.Stat(snapDir); !os.IsNotExist(err) {
+		t.Errorf("expected snapshot dir to be removed, stat err = %v", err)
+	}
+	if !strings.Contains(out.String(), "deleted 2 script(s)") {
+		t.Errorf("expected count in output, got %q", out.String())
+	}
+}
+
+func TestSnapshotDelete_NoopWhenAbsent(t *testing.T) {
+	snapDir := filepath.Join(t.TempDir(), "missing")
+	snapshotDirOverride = func(string) (string, error) { return snapDir, nil }
+	t.Cleanup(func() { snapshotDirOverride = nil })
+
+	var out bytes.Buffer
+	root := newRootCmd()
+	root.SetOut(&out)
+	root.SetArgs([]string{"snapshot", "delete"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("expected no error for absent snapshot, got %v", err)
+	}
+
+	if !strings.Contains(out.String(), "no snapshot found") {
+		t.Errorf("expected 'no snapshot found' message, got %q", out.String())
 	}
 }
