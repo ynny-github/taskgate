@@ -252,7 +252,7 @@ func TestSnapshotDirFn_XDGStateHome(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := filepath.Join(state, "taskgate", "snapshots", filepath.Base(tmp))
+	want := filepath.Join(state, "taskgate", "snapshots", snapshotDirName(tmp))
 	if got != want {
 		t.Errorf("snapshotDirFn = %q, want %q", got, want)
 	}
@@ -273,7 +273,7 @@ func TestSnapshotDirFn_DefaultsToLocalState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := filepath.Join(home, ".local", "state", "taskgate", "snapshots", filepath.Base(tmp))
+	want := filepath.Join(home, ".local", "state", "taskgate", "snapshots", snapshotDirName(tmp))
 	if got != want {
 		t.Errorf("snapshotDirFn = %q, want %q", got, want)
 	}

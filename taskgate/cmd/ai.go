@@ -3,6 +3,8 @@ package cmd
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,6 +16,11 @@ import (
 
 // snapshotDirOverride is set in tests to bypass project-root detection and snapshot-path resolution.
 var snapshotDirOverride func(cwd string) (string, error)
+
+func snapshotDirName(root string) string {
+	sum := sha256.Sum256([]byte(root))
+	return hex.EncodeToString(sum[:])[:12]
+}
 
 func snapshotDirFn(cwd string) (string, error) {
 	root := detectProjectRoot(cwd)
@@ -28,7 +35,7 @@ func snapshotDirFn(cwd string) (string, error) {
 		}
 		stateHome = filepath.Join(home, ".local", "state")
 	}
-	return filepath.Join(stateHome, "taskgate", "snapshots", filepath.Base(root)), nil
+	return filepath.Join(stateHome, "taskgate", "snapshots", snapshotDirName(root)), nil
 }
 
 func newAICmd() *cobra.Command {
