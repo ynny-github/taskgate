@@ -106,6 +106,45 @@ Example (no-argument AI form):
 - `docs/show/adr/0002-directory-description-filename.md`: mark **Superseded** (feature removed).
 - New ADR: record the recursive no-argument listing and the executable-only filter.
 
+## Test impact
+
+The E2E suite is Ginkgo Go tests under `tests/e2e/show/` with golden fixtures in
+`tests/e2e/show/testdata/golden/` and helpers in `tests/e2e/testutil/`. The unit tests
+live in `internal/show/`. This change touches all of them.
+
+- **`tests/e2e/show/browse_test.go`** (no-argument listing): today it asserts full-path
+  rows for the immediate root level. Rewrite to expect the **recursive indented tree**
+  (basenames, depth indentation, directories path-only). Add cases proving recursion
+  descends multiple levels in FR-007 order.
+- **`tests/e2e/show/directory_test.go`** and the golden files
+  `dir_with_index.golden`, `dir_runnable_index.golden`, `dir_without_index.golden`,
+  `dir_no_recursion.golden`: these assert directory summary/body from `_index` and the
+  non-recursion boundary for the old model. Remove the description assertions; rework the
+  directory-target goldens to the new "path header + one-level indented children, no
+  summary/body" shape.
+- **`tests/e2e/show/inspect_test.go`** and `inspect_task_*.golden`: `show <task>` is
+  unchanged — keep, but re-verify they still pass.
+- **`tests/e2e/show/errors_test.go`, `edges_test.go`**: re-verify collision, invalid-input,
+  workspace-missing, and symlink-escape behavior against the recursive walk; the recursive
+  case now visits deeper levels, so add a collision-at-depth case.
+- **`tests/e2e/testutil/workspace.go`**: `WriteIndex` / `WriteRunnableIndex` /
+  `WriteMalformedIndex` exist for the `_index` description feature and become obsolete for
+  that purpose; retire or repurpose them. **Gotcha**: `WriteIndex` writes a non-executable
+  (`0o644`) file, which the new executable-only filter now hides from listings — fixtures
+  that relied on non-executable files appearing must be updated.
+- **New E2E coverage for the executable-only filter** (FR-014): a non-executable regular
+  file is absent from the listing, and `show <name>` against it returns not-found; a
+  symlink to an executable target is included, a symlink to a non-executable target is not.
+- **Unit tests** `internal/show/mergedview_test.go` and `render_test.go`: update for the
+  removed `_index` handling, the new recursive resolver (`ResolveTree`) and `Entry.Depth`,
+  the executable-only filter, and the indented-tree renderer; remove directory-annotation
+  assertions.
+- **`docs/show/requirements.md`** points test pins at `tests/features/show/*.feature` run
+  via `pytest` / `taskgate run e2e`; the actual suite is Ginkgo Go under `tests/e2e/show/`.
+  Correct the pointer to the real location as part of the requirements edit.
+
+Follow TDD: update/author the failing tests and goldens first, then implement.
+
 ## Out of scope
 
 - Any change to `show <task>` detail output.
