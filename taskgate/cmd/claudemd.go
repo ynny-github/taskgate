@@ -72,6 +72,8 @@ func ensureClaudeMdPointer(dir string) (string, string, error) {
 	rel := "CLAUDE.md"
 	if _, err := os.Stat(filepath.Join(dir, ".claude", "CLAUDE.md")); err == nil {
 		rel = filepath.Join(".claude", "CLAUDE.md")
+	} else if !os.IsNotExist(err) {
+		return rel, "", err
 	}
 	full := filepath.Join(dir, rel)
 

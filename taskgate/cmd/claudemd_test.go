@@ -139,3 +139,20 @@ func TestEnsureClaudeMdPointer_UnchangedOnSecondRun(t *testing.T) {
 		t.Errorf("action = %q, want \"unchanged\" on idempotent re-run", action)
 	}
 }
+
+func TestEnsureClaudeMdPointer_FallsBackToRootWhenDotClaudeDirHasNoFile(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, ".claude"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	path, action, err := ensureClaudeMdPointer(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if path != "CLAUDE.md" {
+		t.Errorf("path = %q, want \"CLAUDE.md\" when .claude/ has no CLAUDE.md", path)
+	}
+	if action != "created" {
+		t.Errorf("action = %q, want \"created\"", action)
+	}
+}
