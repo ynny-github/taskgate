@@ -240,6 +240,57 @@ func TestAIRunCmd_PassesFlagStyleArgs(t *testing.T) {
 	}
 }
 
+func TestSnapshotDirFn_XDGStateHome(t *testing.T) {
+	tmp := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tmp, ".taskgate"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	state := t.TempDir()
+	t.Setenv("XDG_STATE_HOME", state)
+
+	got, err := snapshotDirFn(tmp)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := filepath.Join(state, "taskgate", "snapshots", snapshotDirName(tmp))
+	if got != want {
+		t.Errorf("snapshotDirFn = %q, want %q", got, want)
+	}
+}
+
+func TestSnapshotDirFn_DefaultsToLocalState(t *testing.T) {
+	tmp := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tmp, ".taskgate"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("XDG_STATE_HOME", "")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := snapshotDirFn(tmp)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := filepath.Join(home, ".local", "state", "taskgate", "snapshots", snapshotDirName(tmp))
+	if got != want {
+		t.Errorf("snapshotDirFn = %q, want %q", got, want)
+	}
+}
+
+func TestSnapshotDirFn_NoRoot(t *testing.T) {
+	tmp := t.TempDir() // no .taskgate anywhere
+	_, err := snapshotDirFn(tmp)
+	if err == nil {
+		t.Fatal("expected error when no .taskgate marker, got nil")
+	}
+	want := "cannot determine project root: .taskgate directory not found"
+	if err.Error() != want {
+		t.Errorf("got %q, want %q", err.Error(), want)
+	}
+}
+
 // makeTask creates an executable task script under .taskgate/<subdir>/<name>.
 // Lives here because list_test.go (which previously hosted it) is gone.
 func makeTask(t *testing.T, tmp, subdir, name string) {

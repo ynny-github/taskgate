@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// snapshotDirOverride is set in tests to bypass git root detection.
+// snapshotDirOverride is set in tests to bypass project-root detection and snapshot-path resolution.
 var snapshotDirOverride func(cwd string) (string, error)
 
 func snapshotDirName(root string) string {
@@ -25,13 +25,17 @@ func snapshotDirName(root string) string {
 func snapshotDirFn(cwd string) (string, error) {
 	root := detectProjectRoot(cwd)
 	if root == "" {
-		return "", fmt.Errorf("cannot determine project root: not in a git repository")
+		return "", fmt.Errorf("cannot determine project root: .taskgate directory not found")
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("cannot determine home directory: %w", err)
+	stateHome := os.Getenv("XDG_STATE_HOME")
+	if stateHome == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("cannot determine home directory: %w", err)
+		}
+		stateHome = filepath.Join(home, ".local", "state")
 	}
-	return filepath.Join(home, ".taskgate", "snapshots", snapshotDirName(root)), nil
+	return filepath.Join(stateHome, "taskgate", "snapshots", snapshotDirName(root)), nil
 }
 
 func newAICmd() *cobra.Command {
@@ -88,7 +92,9 @@ func runAITask(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := checkSnapshotFresh(cwd, taskName, taskPath); err != nil {
+	root := detectProjectRoot(cwd)
+
+	if err := checkSnapshotFresh(root, taskName, taskPath); err != nil {
 		fmt.Fprintln(cmd.ErrOrStderr(), err.Error())
 		return err
 	}
@@ -98,7 +104,7 @@ func runAITask(cmd *cobra.Command, args []string) error {
 	c.Stderr = cmd.ErrOrStderr()
 	c.Stdin = os.Stdin
 
-	if root := detectProjectRoot(cwd); root != "" {
+	if root != "" {
 		env := make([]string, 0, len(os.Environ())+1)
 		for _, e := range os.Environ() {
 			if !strings.HasPrefix(e, "TASKGATE_PROJECT_ROOT=") {
@@ -111,10 +117,13 @@ func runAITask(cmd *cobra.Command, args []string) error {
 	return c.Run()
 }
 
-func checkSnapshotFresh(cwd, taskName, snapshotPath string) error {
+func checkSnapshotFresh(root, taskName, snapshotPath string) error {
+	if root == "" {
+		return nil
+	}
 	var sourcePath string
 	for _, subdir := range []string{"ai", "shared"} {
-		p := filepath.Join(cwd, ".taskgate", subdir, taskName)
+		p := filepath.Join(root, ".taskgate", subdir, taskName)
 		if _, err := os.Stat(p); err == nil {
 			sourcePath = p
 			break
