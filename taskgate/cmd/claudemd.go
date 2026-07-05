@@ -30,11 +30,14 @@ func upsertClaudeMdBlock(existing string) (string, bool) {
 		if existing == "" {
 			return block, true
 		}
-		sep := "\n"
-		if !strings.HasSuffix(existing, "\n") {
-			sep = "\n\n"
-		} else if !strings.HasSuffix(existing, "\n\n") {
+		var sep string
+		switch {
+		case strings.HasSuffix(existing, "\n\n"):
+			sep = ""
+		case strings.HasSuffix(existing, "\n"):
 			sep = "\n"
+		default:
+			sep = "\n\n"
 		}
 		return existing + sep + block, true
 	}

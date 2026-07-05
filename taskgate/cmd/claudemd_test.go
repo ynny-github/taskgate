@@ -50,3 +50,32 @@ func TestUpsertClaudeMdBlock_IdempotentWhenCurrent(t *testing.T) {
 		t.Errorf("re-running upsert must be a no-op, got different content")
 	}
 }
+
+func TestUpsertClaudeMdBlock_NoDoubleBlankWhenTrailingBlankLine(t *testing.T) {
+	existing := "text\n\n"
+	got, changed := upsertClaudeMdBlock(existing)
+	if !changed {
+		t.Fatal("expected changed=true when block is absent")
+	}
+	want := existing + renderClaudeMdBlock()
+	if got != want {
+		t.Errorf("separator should be empty when existing ends with a blank line\n got: %q\nwant: %q", got, want)
+	}
+	second, changed2 := upsertClaudeMdBlock(got)
+	if changed2 {
+		t.Errorf("second upsert must be a no-op, got changed=true")
+	}
+	if second != got {
+		t.Errorf("second upsert must not modify content")
+	}
+}
+
+func TestUpsertClaudeMdBlock_EmptyInput(t *testing.T) {
+	got, changed := upsertClaudeMdBlock("")
+	if !changed {
+		t.Fatal("expected changed=true for empty input")
+	}
+	if got != renderClaudeMdBlock() {
+		t.Errorf("empty input must yield exactly the rendered block\n got: %q\nwant: %q", got, renderClaudeMdBlock())
+	}
+}
