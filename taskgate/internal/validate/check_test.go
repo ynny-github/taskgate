@@ -96,6 +96,18 @@ func TestCheckFile_IndexStillChecksAnnotation(t *testing.T) {
 	}
 }
 
+func TestCheckFile_AbsentAnnotationIsNotAFinding(t *testing.T) {
+	dir := t.TempDir()
+	p := writeFile(t, dir, "build", "#!/bin/sh\necho hi\n", 0o755)
+	got, err := checkFile(discovered{absPath: p, displayPath: ".taskgate/shared/build", logicalName: "build"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("absent annotation must yield no findings, got %+v", got)
+	}
+}
+
 func TestCheckFile_SetsLogicalName(t *testing.T) {
 	dir := t.TempDir()
 	p := writeFile(t, dir, "build", "echo hi\n", 0o644)

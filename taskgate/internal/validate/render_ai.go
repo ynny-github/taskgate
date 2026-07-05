@@ -15,9 +15,13 @@ type validationEnvelope struct {
 }
 
 type aiErrorEnvelope struct {
-	Kind    string `json:"kind"`
-	Err     string `json:"error"`
-	Message string `json:"message"`
+	Kind     string   `json:"kind"`
+	Err      string   `json:"error"`
+	Message  string   `json:"message"`
+	Name     string   `json:"name,omitempty"`
+	Searched []string `json:"searched,omitempty"`
+	Input    string   `json:"input,omitempty"`
+	Reason   string   `json:"reason,omitempty"`
 }
 
 // renderAI writes one JSON validation envelope terminated by "\n".
@@ -39,6 +43,11 @@ func renderAI(stdout io.Writer, findings []Finding) (int, error) {
 // per ADR-0003, so AI clients parse one stream regardless of outcome).
 func writeAIError(w io.Writer, code, message string) error {
 	return writeJSONLine(w, aiErrorEnvelope{Kind: "error", Err: code, Message: message})
+}
+
+// writeAIErrorEnvelope marshals a fully-populated aiErrorEnvelope as a JSON line.
+func writeAIErrorEnvelope(w io.Writer, env aiErrorEnvelope) error {
+	return writeJSONLine(w, env)
 }
 
 func writeJSONLine(w io.Writer, payload any) error {

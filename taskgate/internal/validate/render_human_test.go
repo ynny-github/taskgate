@@ -66,3 +66,26 @@ func TestRenderNotFound_HumanWritesStderr(t *testing.T) {
 		t.Errorf("stderr = %q", stderr.String())
 	}
 }
+
+func TestRenderNotFound_AIWritesEnvelopeWithNameAndSearched(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code, err := renderNotFound(show.AudienceAI, show.NotFoundReport{
+		Name:     "nope",
+		Searched: []string{".taskgate/human"},
+	}, &stdout, &stderr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code != show.ExitNotFound {
+		t.Errorf("code = %d, want %d", code, show.ExitNotFound)
+	}
+	if stderr.Len() != 0 {
+		t.Errorf("expected no stderr output, got %q", stderr.String())
+	}
+	out := stdout.String()
+	for _, want := range []string{`"kind":"error"`, `"error":"not_found"`, `"name":"nope"`, `.taskgate/human`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("stdout missing %q; got %q", want, out)
+		}
+	}
+}

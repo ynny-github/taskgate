@@ -36,7 +36,13 @@ func renderWorkspaceMissing(a show.Audience, stdout, stderr io.Writer) (int, err
 func renderNotFound(a show.Audience, rep show.NotFoundReport, stdout, stderr io.Writer) (int, error) {
 	msg := fmt.Sprintf("task %q not found", rep.Name)
 	if a == show.AudienceAI {
-		return show.ExitNotFound, writeAIError(stdout, "not_found", msg)
+		return show.ExitNotFound, writeAIErrorEnvelope(stdout, aiErrorEnvelope{
+			Kind:     "error",
+			Err:      "not_found",
+			Message:  msg,
+			Name:     rep.Name,
+			Searched: rep.Searched,
+		})
 	}
 	fmt.Fprintln(stderr, msg)
 	return show.ExitNotFound, nil
@@ -45,7 +51,13 @@ func renderNotFound(a show.Audience, rep show.NotFoundReport, stdout, stderr io.
 func renderInvalidInput(a show.Audience, rep show.InvalidInputReport, stdout, stderr io.Writer) (int, error) {
 	msg := fmt.Sprintf("invalid name %q: %s", rep.Input, rep.Reason)
 	if a == show.AudienceAI {
-		return show.ExitInvalidInput, writeAIError(stdout, "invalid_input", msg)
+		return show.ExitInvalidInput, writeAIErrorEnvelope(stdout, aiErrorEnvelope{
+			Kind:    "error",
+			Err:     "invalid_input",
+			Message: msg,
+			Input:   rep.Input,
+			Reason:  rep.Reason,
+		})
 	}
 	fmt.Fprintln(stderr, msg)
 	return show.ExitInvalidInput, nil
