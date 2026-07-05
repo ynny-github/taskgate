@@ -36,6 +36,9 @@ func writeTaskFixture(t *testing.T, ws, rel, summary, body string) {
 	}
 	parts = append(parts, "# ---", "echo hi", "")
 	writeFixture(t, ws, rel, strings.Join(parts, "\n"))
+	if err := os.Chmod(filepath.Join(ws, rel), 0o755); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func mkdir(t *testing.T, ws, rel string) {
@@ -65,6 +68,9 @@ func TestResolveRoot_HumanMergesSharedAndHuman(t *testing.T) {
 	writeTaskFixture(t, tmp, ".taskgate/human/build", "Build the project.", "")
 	writeTaskFixture(t, tmp, ".taskgate/shared/lint", "Lint the codebase.", "")
 	writeFixture(t, tmp, ".taskgate/shared/test", "#!/bin/sh\necho hi\n") // no annotation
+	if err := os.Chmod(filepath.Join(tmp, ".taskgate/shared/test"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 
 	entries, col := resolveRoot(t, tmp, AudienceHuman)
 	if col != nil {
@@ -297,9 +303,10 @@ func TestResolveName_Task_CollisionInBuckets(t *testing.T) {
 	}
 }
 
-func TestResolveName_Directory_WithIndex(t *testing.T) {
+func TestResolveName_Directory_HasNoAnnotation(t *testing.T) {
 	tmp := t.TempDir()
-	writeFixture(t, tmp, ".taskgate/human/deploy/_index", "# ---\n# summary: Promote.\n# body: |\n#   The body.\n# ---\n")
+	// A non-executable _index is now just a non-executable file: filtered out.
+	writeFixture(t, tmp, ".taskgate/human/deploy/_index", "# ---\n# summary: Promote.\n# ---\n")
 	writeTaskFixture(t, tmp, ".taskgate/human/deploy/prod", "Prod.", "")
 	ws := filepath.Join(tmp, ".taskgate")
 
@@ -313,11 +320,13 @@ func TestResolveName_Directory_WithIndex(t *testing.T) {
 	if target.Kind != EntryKindDirectory {
 		t.Fatalf("kind = %v, want directory", target.Kind)
 	}
-	if target.Entry.Annotation.Summary != "Promote." {
-		t.Errorf("summary = %q", target.Entry.Annotation.Summary)
+	if target.Entry.Annotation != (annotation.AnnotationBlock{}) {
+		t.Errorf("directory must carry no annotation, got %+v", target.Entry.Annotation)
 	}
-	if target.Entry.Annotation.Body != "The body." {
-		t.Errorf("body = %q", target.Entry.Annotation.Body)
+	for _, c := range target.Children {
+		if c.Name == "_index" {
+			t.Error("non-executable _index must be filtered from children")
+		}
 	}
 }
 
@@ -377,30 +386,13 @@ func TestResolveName_Directory_ChildrenSorted(t *testing.T) {
 	}
 }
 
-func TestResolveName_Directory_IndexExcludedFromChildren(t *testing.T) {
+func TestResolveName_Directory_ExecutableIndexIsOrdinaryChild(t *testing.T) {
 	tmp := t.TempDir()
-	writeFixture(t, tmp, ".taskgate/human/deploy/_index", "---\nsummary: d\n---\n")
-	writeTaskFixture(t, tmp, ".taskgate/human/deploy/prod", "", "")
-	ws := filepath.Join(tmp, ".taskgate")
-
-	target, _, _, err := ResolveName(AudienceHuman, ws, "deploy")
-	if err != nil {
+	idx := filepath.Join(tmp, ".taskgate/human/deploy/_index")
+	if err := os.MkdirAll(filepath.Dir(idx), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	for _, c := range target.Children {
-		if c.Name == "_index" {
-			t.Error("_index leaked into children list (FR-011)")
-		}
-	}
-}
-
-func TestResolveName_Directory_IndexExecutableStillTreatedAsDescription(t *testing.T) {
-	tmp := t.TempDir()
-	indexPath := filepath.Join(tmp, ".taskgate/human/deploy/_index")
-	if err := os.MkdirAll(filepath.Dir(indexPath), 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(indexPath, []byte("# ---\n# summary: exec.\n# ---\n"), 0755); err != nil {
+	if err := os.WriteFile(idx, []byte("#!/bin/sh\necho hi\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	writeTaskFixture(t, tmp, ".taskgate/human/deploy/prod", "", "")
@@ -410,13 +402,18 @@ func TestResolveName_Directory_IndexExecutableStillTreatedAsDescription(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if target.Entry.Annotation.Summary != "exec." {
-		t.Errorf("summary = %q", target.Entry.Annotation.Summary)
-	}
+	var names []string
 	for _, c := range target.Children {
-		if c.Name == "_index" {
-			t.Error("executable _index leaked into children")
+		names = append(names, c.Name)
+	}
+	found := false
+	for _, n := range names {
+		if n == "_index" {
+			found = true
 		}
+	}
+	if !found {
+		t.Errorf("executable _index must appear as an ordinary child, got %v", names)
 	}
 }
 
@@ -454,17 +451,19 @@ func TestResolveName_Directory_CollisionInChildren(t *testing.T) {
 	}
 }
 
-func TestResolveRoot_UnreadableTaskFile(t *testing.T) {
+func TestResolveRoot_UnreadableExecutableFile(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("root bypasses file permissions; this test only runs for unprivileged users")
 	}
 	tmp := t.TempDir()
 	writeTaskFixture(t, tmp, ".taskgate/human/readable", "Readable.", "")
 	unreadable := filepath.Join(tmp, ".taskgate/human/unreadable")
-	if err := os.MkdirAll(filepath.Dir(unreadable), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(unreadable), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(unreadable, []byte("#!/bin/sh\necho hi\n"), 0000); err != nil {
+	// Executable so it survives the exec filter, but unreadable so the
+	// annotation read fails and surfaces a note.
+	if err := os.WriteFile(unreadable, []byte("#!/bin/sh\necho hi\n"), 0o111); err != nil {
 		t.Fatal(err)
 	}
 
@@ -477,10 +476,7 @@ func TestResolveRoot_UnreadableTaskFile(t *testing.T) {
 		names[e.Name] = e
 	}
 	if _, ok := names["unreadable"]; !ok {
-		t.Fatal("unreadable entry should still surface in the listing")
-	}
-	if names["unreadable"].Annotation != (annotation.AnnotationBlock{}) {
-		t.Errorf("annotation should be empty for unreadable file")
+		t.Fatal("executable-but-unreadable entry should still surface")
 	}
 	if names["unreadable"].Note == "" {
 		t.Errorf("Note should describe the read failure")
@@ -520,20 +516,23 @@ func TestResolveRoot_SymlinkEscapesWorkspace(t *testing.T) {
 	}
 }
 
-func TestResolveRoot_StrayIndexInBucket(t *testing.T) {
+func TestResolveRoot_NonExecutableFileHidden(t *testing.T) {
 	tmp := t.TempDir()
-	// A stray _index file at the bucket root should be silently ignored:
-	// the bucket itself is invisible (FR-012), so its _index has no effect.
+	writeTaskFixture(t, tmp, ".taskgate/human/build", "Build.", "")
+	writeFixture(t, tmp, ".taskgate/human/notes.txt", "just notes\n") // 0644, non-exec
+	// stray non-executable _index: also hidden, now purely because it is non-exec.
 	writeFixture(t, tmp, ".taskgate/human/_index", "---\nsummary: bucket\n---\n")
-	writeTaskFixture(t, tmp, ".taskgate/human/build", "h.", "")
 
 	entries, col := resolveRoot(t, tmp, AudienceHuman)
 	if col != nil {
 		t.Fatalf("unexpected collision: %+v", col)
 	}
 	for _, e := range entries {
-		if e.Name == "_index" {
-			t.Errorf("stray _index leaked into root listing")
+		if e.Name == "notes.txt" || e.Name == "_index" {
+			t.Errorf("non-executable file %q must be hidden", e.Name)
 		}
+	}
+	if len(entries) != 1 || entries[0].Name != "build" {
+		t.Errorf("want only executable 'build', got %v", entryNames(entries))
 	}
 }

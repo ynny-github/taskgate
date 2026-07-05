@@ -9,9 +9,6 @@ import (
 	"github.com/ynny-github/taskgate/taskgate/internal/annotation"
 )
 
-// indexFilename is the directory description file name (research R2).
-const indexFilename = "_index"
-
 // Audience is the caller's audience filter. taskgate show -> Human,
 // taskgate ai show -> AI. The merged view always includes the "shared"
 // bucket in addition to the audience's own bucket.
@@ -91,12 +88,8 @@ func bucketRelPath(bucket string, sub string) string {
 // scanBucket reads one level inside <workspaceDir>/<bucket>/<sub>.
 // Returns map keyed by basename pointing at the bucket-qualified Entry
 // (so the caller can detect cross-bucket collisions and merge).
-//
-// Audience-bucket _index stray files at the immediate root level are
-// silently skipped (research R2) since the bucket itself is invisible.
-// For nested levels and the shared bucket, _index is a directory's own
-// description and is filtered out here (the caller of ResolveName handles
-// directory-target loading explicitly).
+// Non-executable regular files are hidden (FR-014); an escaping/broken
+// symlink (note != "") is left listed regardless of executable bit.
 func scanBucket(workspaceDir, bucket, sub string) (map[string]Entry, error) {
 	absDir := filepath.Join(workspaceDir, bucket, sub)
 	dirEntries, err := os.ReadDir(absDir)
@@ -109,18 +102,17 @@ func scanBucket(workspaceDir, bucket, sub string) (map[string]Entry, error) {
 	out := make(map[string]Entry, len(dirEntries))
 	for _, de := range dirEntries {
 		name := de.Name()
-		if name == indexFilename {
-			// _index never appears as a child of any level. Stray ones
-			// at the bucket root are also implicitly hidden because the
-			// bucket itself is not a user-facing entry.
-			continue
-		}
 		absChild := filepath.Join(absDir, name)
 		kind := EntryKindTask
 		if de.IsDir() {
 			kind = EntryKindDirectory
 		}
 		ann, note := loadAnnotationForWithNote(absChild, kind)
+		if kind == EntryKindTask && note == "" && !isExecutable(absChild) {
+			// Non-executable files cannot be run; hide them (FR-014).
+			// An escaping/broken symlink (note != "") is left listed.
+			continue
+		}
 		out[name] = Entry{
 			Name:       name,
 			Path:       bucketRelPath(bucket, filepath.Join(sub, name)),
@@ -132,34 +124,19 @@ func scanBucket(workspaceDir, bucket, sub string) (map[string]Entry, error) {
 	return out, nil
 }
 
-// loadAnnotationFor returns the annotation for a child path. For a task,
-// it parses the file head; for a directory, it parses _index when present.
-// Read errors degrade to an empty AnnotationBlock (FR-009).
-func loadAnnotationFor(absPath string, kind EntryKind) annotation.AnnotationBlock {
-	ann, _ := loadAnnotationForWithNote(absPath, kind)
-	return ann
-}
-
-// loadAnnotationForWithNote behaves like loadAnnotationFor but also
-// returns a non-fatal note describing any read failure, so the caller
-// can surface it without aborting (T038, symlink-escape T039).
+// loadAnnotationForWithNote returns a task file's annotation plus a
+// non-fatal note describing any read failure. Directories carry no
+// annotation. An escaping or broken symlink yields an empty block and a
+// descriptive note (FR-008).
 func loadAnnotationForWithNote(absPath string, kind EntryKind) (annotation.AnnotationBlock, string) {
 	if note := symlinkEscapeNote(absPath); note != "" {
 		return annotation.AnnotationBlock{}, note
 	}
-	var target string
-	switch kind {
-	case EntryKindTask:
-		target = absPath
-	case EntryKindDirectory:
-		target = filepath.Join(absPath, indexFilename)
+	if kind == EntryKindDirectory {
+		return annotation.AnnotationBlock{}, ""
 	}
-	f, err := os.Open(target)
+	f, err := os.Open(absPath)
 	if err != nil {
-		if kind == EntryKindDirectory && os.IsNotExist(err) {
-			// No _index is fine — directories may be undescribed.
-			return annotation.AnnotationBlock{}, ""
-		}
 		if os.IsPermission(err) {
 			return annotation.AnnotationBlock{}, "permission denied"
 		}
@@ -171,6 +148,16 @@ func loadAnnotationForWithNote(absPath string, kind EntryKind) (annotation.Annot
 		return annotation.AnnotationBlock{}, ""
 	}
 	return block, ""
+}
+
+// isExecutable reports whether absPath is an executable file. Symlinks are
+// followed to their target's mode — the same file taskgate run executes.
+func isExecutable(absPath string) bool {
+	info, err := os.Stat(absPath)
+	if err != nil {
+		return false
+	}
+	return info.Mode()&0o111 != 0
 }
 
 // symlinkEscapeNote returns a note when absPath is a symlink whose
@@ -341,12 +328,8 @@ func ResolveName(audience Audience, workspaceDir, name string) (*ResolvedTarget,
 }
 
 // scanBucketSegment returns an Entry for <bucket>/<sub>/<seg> if it
-// exists, else nil. _index is treated as non-existent so it is never a
-// target itself (FR-011); the directory above it is what resolves.
+// exists, else nil. Non-executable regular files return nil (FR-014).
 func scanBucketSegment(workspaceDir, bucket, sub, seg string) (*Entry, error) {
-	if seg == indexFilename {
-		return nil, nil
-	}
 	abs := filepath.Join(workspaceDir, bucket, sub, seg)
 	info, err := os.Lstat(abs)
 	if err != nil {
@@ -360,6 +343,9 @@ func scanBucketSegment(workspaceDir, bucket, sub, seg string) (*Entry, error) {
 		kind = EntryKindDirectory
 	}
 	ann, note := loadAnnotationForWithNote(abs, kind)
+	if kind == EntryKindTask && note == "" && !isExecutable(abs) {
+		return nil, nil // non-executable file: not resolvable (FR-014)
+	}
 	return &Entry{
 		Name:       seg,
 		Path:       bucketRelPath(bucket, filepath.Join(sub, seg)),
