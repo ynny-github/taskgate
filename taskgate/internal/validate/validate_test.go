@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ynny-github/taskgate/taskgate/internal/show"
@@ -89,6 +90,9 @@ func TestRun_WorkspaceMissing(t *testing.T) {
 	if code != show.ExitWorkspaceMissing {
 		t.Errorf("code = %d, want %d", code, show.ExitWorkspaceMissing)
 	}
+	if stderr.Len() == 0 {
+		t.Error("expected a workspace-missing message on stderr")
+	}
 }
 
 func TestRun_NameFilterScopesToOneTask(t *testing.T) {
@@ -120,6 +124,9 @@ func TestRun_NameNotFound(t *testing.T) {
 	if code != show.ExitNotFound {
 		t.Errorf("code = %d, want %d", code, show.ExitNotFound)
 	}
+	if !strings.Contains(stderr.String(), "nope") {
+		t.Errorf("expected not-found message mentioning %q, got %q", "nope", stderr.String())
+	}
 }
 
 func TestRun_AIEmitsEnvelope(t *testing.T) {
@@ -136,5 +143,17 @@ func TestRun_AIEmitsEnvelope(t *testing.T) {
 	}
 	if !bytes.Contains(stdout.Bytes(), []byte(`"kind":"validation"`)) {
 		t.Errorf("expected validation envelope, got %q", stdout.String())
+	}
+}
+
+func TestRun_TooManyArgs(t *testing.T) {
+	setupWS(t)
+	var stdout, stderr bytes.Buffer
+	code, err := Run(show.AudienceHuman, []string{"a", "b"}, &stdout, &stderr)
+	if err == nil {
+		t.Error("expected error for too many args")
+	}
+	if code != show.ExitGeneric {
+		t.Errorf("code = %d, want %d", code, show.ExitGeneric)
 	}
 }
