@@ -11,6 +11,8 @@
       "Read(~/.ssh/**)",
       "Glob(~/.ssh/**)",
       "Grep(~/.ssh/**)",
+      "Write(~/.ssh/known_hosts)",
+      "Update(~/.ssh/known_hosts)",
       "Read(~/.docker/**)",
       "Glob(~/.docker/**)",
       "Grep(~/.docker/**)"

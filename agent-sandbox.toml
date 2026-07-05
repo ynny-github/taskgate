@@ -1,16 +1,16 @@
-  [server]
-  output_dir = "./tmp/agent-sandbox/command-router"
+  # Tool execution mode: "hook" routes the agent's Bash/Monitor commands through
+  # the PreToolUse hook (see .claude/settings.json) into `agent-sandbox exec`.
+  tool_mode = "hook"
 
-  [sandbox]
+  [sandbox.container]
   build_context = "./docker/sandbox"
   dockerfile = "Dockerfile"
-  image = "taskgate/sandbox:0.1.0"
+  image = "sandbox:0.1.0"
 
-  [allow_patterns]
-  patterns = [
+  [sandbox.command]
+  allow = [
     "git *",
     "taskgate ai *",
-    "go *",
     # gh CLI — restricted to the operations the github MCP exposes:
     #   pr_* (create/view/list/edit/merge/review/comment/diff/update-branch)
     #   issue_* (create/view/list/edit/close/comment)
@@ -24,8 +24,75 @@
     "gh search prs *",
     "gh search issues *",
     "gh label *",
+    "go *"
+  ]
+
+  # Patterns matched here are refused — neither the host nor the sandbox runs
+  # them. Use this to block destructive git invocations that the broader
+  # "git *" allow rule would otherwise permit.
+  drop = [
+    # Force push — rewrites remote history
+    "git push --force*",
+    "git push * --force*",
+    "git push -f*",
+    "git push * -f *",
+    "git push * -f",
+    "git push --delete *",
+    "git push * --delete *",
+
+    # Hard reset — discards uncommitted/committed work
+    "git reset --hard*",
+    "git reset * --hard*",
+
+    # Force clean — removes untracked files/dirs
+    "git clean *-f*",
+    "git clean *--force*",
+
+    # Force branch delete
+    "git branch -D *",
+    "git branch * -D *",
+    "git branch --delete --force*",
+    "git branch * --delete --force*",
+
+    # History rewriting / ref surgery
+    "git filter-branch*",
+    "git filter-repo*",
+    "git update-ref -d*",
+    "git reflog expire*",
+    "git gc --prune=now*",
+    "git gc * --prune=now*",
+
+    # Hook / signature bypass (CLAUDE.md forbids these)
+    "git * --no-verify*",
+    "git * --no-gpg-sign*",
+
+    # Stash destruction
+    "git stash drop*",
+    "git stash clear*",
+
+    # Remote tampering
+    "git remote remove *",
+    "git remote rm *",
+    "git remote set-url *",
+
+    # Tag deletion
+    "git tag -d *",
+    "git tag --delete *",
+
+    # Discarding local changes wholesale
+    "git checkout -- *",
+    "git checkout .",
+    "git restore .",
+    "git restore --worktree *",
+
+    # Config mutation (CLAUDE.md: NEVER update git config); reads still allowed
+    "git config --global *",
+    "git config --system *",
+    "git config --add *",
+    "git config --unset*",
+    "git config --remove-*",
+    "git config --replace-all *"
   ]
 
   [nono]
   profile = "nono.jsonc"
-  subcommand = "wrap"

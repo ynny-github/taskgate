@@ -8,16 +8,15 @@
       "LC_ALL",
       "USER",
       "__MISE*",
-      "MISE*"
+      "MISE*",
     ],
   },
   "extends": "claude",
   "filesystem": {
+    "bypass_protection": ["~/.docker", "~/.ssh"],
     "allow": [
       "~/go"
     ],
-    // don't place private keys in ~/.ssh
-    "bypass_protection": ["~/.docker", "~/.ssh"],
     "read": [
       "~/.orbstack",
       "~/.taskgate",
@@ -30,5 +29,10 @@
   },
   "meta": {
     "name": "custom claude",
+  },
+  "groups": {
+    "include": [
+      "python_runtime"
+    ]
   }
 }

@@ -1,9 +1,5 @@
 [tools]
 go = "1.25"
-"go:github.com/ynny-github/agent-sandbox/agent-sandbox" = "v0.7.0"
+"go:github.com/ynny-github/agent-sandbox/agent-sandbox" = "v0.11.5"
 "go:github.com/ynny-github/taskgate/taskgate" = "v0.1.1"
 lefthook = "latest"
-
-[env]
-GOMODCACHE = "{{config_root}}/.go/pkg/mod/cache"
-GOPATH     = "{{config_root}}/.go"

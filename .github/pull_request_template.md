@@ -1,46 +1,34 @@
-<!-- AI-generated PR. Sections marked [AI] are filled by the agent. -->
-
-## [AI] Summary
-<!-- [AI] (required) Brief description of what this PR does. -->
+## Summary
+<!-- (required) Brief description of what this PR does. -->
 
 Closes: #<issue number>
-<!-- [AI] (required) Replace <issue number> with the actual GitHub issue number (e.g., Closes: #42). -->
+<!-- (required) Replace <issue number> with the actual GitHub issue number (e.g., Closes: #42). -->
 
 ---
 
-## [AI] Changes
+## Changes
 
 ### What Changed
-<!-- [AI] (required) Describe what was changed and why. -->
+<!-- (required) Describe what was changed and why. -->
 
 ### Impact Scope
-<!-- [AI] (required) Which components/APIs/users are affected, and how significantly. -->
+<!-- (optional) Which components/APIs/users are affected, and how significantly. -->
 
 ### Implementation Decision
-<!-- [AI] (required) Key decisions made. Why this approach over alternatives. -->
+<!-- (optional) Key decisions made. Why this approach over alternatives. -->
 
 ### Test Coverage
-<!-- [AI] (required) What tests cover the purpose of this PR.
+<!-- (optional) What tests cover the purpose of this PR.
      e.g. "Added unit test for X. Integration test Y covers the end-to-end flow." -->
-
-### AI Verification Done
-<!-- [AI] (required) What the agent actually ran/tested.
-     e.g. "ran unit tests", "built and flashed to device" -->
-
-### AI Confidence Notes
-<!-- [AI] (required) Anything the agent is uncertain about. Flag decisions that need human judgment.
-     If fully confident, write: "No significant uncertainties." -->
 
 ---
 
-## [Human] Additional Context
-<!-- (optional) Anything to add that the agent may have missed. -->
-
-### Review Focus
-<!-- (optional) Specific things you want reviewers to check. -->
+## Context
 
 ### Related PRs
-<!-- (optional) URLs of related PRs in other repos. -->
+<!-- (optional) URLs of related PRs in this or other repos. Omit this
+     subsection entirely if none. -->
 
 ### References
-<!-- (optional) Relevant links, docs, issues. -->
+<!-- (optional) Relevant docs, RFCs, specs, or library docs that
+     informed the change. Omit this subsection entirely if none. -->
