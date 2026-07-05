@@ -10,6 +10,7 @@ func TestGuide_ContainsKeyGuidance(t *testing.T) {
 	for _, want := range []string{
 		"taskgate ai show",
 		"taskgate ai run",
+		"taskgate ai validate",
 		"summary",
 		"body",
 		"snapshot install",

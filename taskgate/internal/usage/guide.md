@@ -12,6 +12,17 @@ instead of guessing raw scripts.
 - <name> is a bare or slash-separated task name (e.g. `build`, `deploy/prod`).
 - Filesystem paths are NOT accepted.
 
+## Check task files
+`taskgate ai validate`          — check every task under .taskgate/
+`taskgate ai validate <name>`   — check just one task or directory
+
+Reports authoring problems: a missing execute bit, a missing shebang, a
+broken annotation envelope, or a name that collides between the shared and
+ai buckets. Output is a single JSON object:
+`{"kind":"validation","ok":<bool>,"findings":[...]}`. `ok` is true with an
+empty `findings` list when everything is valid; exit is non-zero when any
+finding is present. Fix the reported files before running the task.
+
 ## Task metadata (annotations)
 Each task can carry a summary/body annotation, written as YAML
 front-matter inside a leading comment block of the script itself.
