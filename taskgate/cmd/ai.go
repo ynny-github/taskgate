@@ -55,6 +55,7 @@ func newAICmd() *cobra.Command {
 	}
 	aiCmd.AddCommand(newAIRunCmd())
 	aiCmd.AddCommand(newAIShowCmd())
+	aiCmd.AddCommand(newAIValidateCmd())
 	aiCmd.AddCommand(newAIUsageCmd())
 	return aiCmd
 }
