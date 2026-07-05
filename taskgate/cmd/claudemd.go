@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/ynny-github/taskgate/taskgate/internal/usage"
@@ -60,4 +62,37 @@ func upsertClaudeMdBlock(existing string) (string, bool) {
 		return existing, false
 	}
 	return updated, true
+}
+
+// ensureClaudeMdPointer writes/updates the taskgate managed block in the
+// project's CLAUDE.md under dir. If dir/.claude/CLAUDE.md exists it is targeted;
+// otherwise dir/CLAUDE.md is used (created when missing). The returned path is
+// relative to dir. action is "created", "updated", or "unchanged".
+func ensureClaudeMdPointer(dir string) (string, string, error) {
+	rel := "CLAUDE.md"
+	if _, err := os.Stat(filepath.Join(dir, ".claude", "CLAUDE.md")); err == nil {
+		rel = filepath.Join(".claude", "CLAUDE.md")
+	}
+	full := filepath.Join(dir, rel)
+
+	existingBytes, err := os.ReadFile(full)
+	created := false
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return rel, "", err
+		}
+		created = true
+	}
+
+	updated, changed := upsertClaudeMdBlock(string(existingBytes))
+	if !changed {
+		return rel, "unchanged", nil
+	}
+	if err := os.WriteFile(full, []byte(updated), 0644); err != nil {
+		return rel, "", err
+	}
+	if created {
+		return rel, "created", nil
+	}
+	return rel, "updated", nil
 }

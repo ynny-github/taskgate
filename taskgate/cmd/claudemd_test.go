@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -77,5 +79,63 @@ func TestUpsertClaudeMdBlock_EmptyInput(t *testing.T) {
 	}
 	if got != renderClaudeMdBlock() {
 		t.Errorf("empty input must yield exactly the rendered block\n got: %q\nwant: %q", got, renderClaudeMdBlock())
+	}
+}
+
+func TestEnsureClaudeMdPointer_CreatesRootWhenAbsent(t *testing.T) {
+	dir := t.TempDir()
+	path, action, err := ensureClaudeMdPointer(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if action != "created" {
+		t.Errorf("action = %q, want \"created\"", action)
+	}
+	if path != "CLAUDE.md" {
+		t.Errorf("path = %q, want \"CLAUDE.md\"", path)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, "CLAUDE.md"))
+	if err != nil {
+		t.Fatalf("reading created file: %v", err)
+	}
+	if !strings.Contains(string(data), claudeMdBeginMarker) {
+		t.Errorf("created CLAUDE.md missing managed block")
+	}
+}
+
+func TestEnsureClaudeMdPointer_PrefersDotClaudeWhenPresent(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, ".claude"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".claude", "CLAUDE.md"), []byte("# existing\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	path, action, err := ensureClaudeMdPointer(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if path != filepath.Join(".claude", "CLAUDE.md") {
+		t.Errorf("path = %q, want .claude/CLAUDE.md", path)
+	}
+	if action != "updated" {
+		t.Errorf("action = %q, want \"updated\"", action)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "CLAUDE.md")); !os.IsNotExist(err) {
+		t.Errorf("root CLAUDE.md must not be created when .claude/CLAUDE.md exists")
+	}
+}
+
+func TestEnsureClaudeMdPointer_UnchangedOnSecondRun(t *testing.T) {
+	dir := t.TempDir()
+	if _, _, err := ensureClaudeMdPointer(dir); err != nil {
+		t.Fatal(err)
+	}
+	_, action, err := ensureClaudeMdPointer(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if action != "unchanged" {
+		t.Errorf("action = %q, want \"unchanged\" on idempotent re-run", action)
 	}
 }
