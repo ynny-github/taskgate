@@ -250,3 +250,70 @@ func TestParse_PrecedingCommentLinesIgnored(t *testing.T) {
 		t.Errorf("summary = %q", got.Summary)
 	}
 }
+
+func TestParseStrict_NoEnvelopeIsClean(t *testing.T) {
+	_, diag, err := ParseStrict(strings.NewReader("#!/bin/sh\necho hi\n"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if diag != nil {
+		t.Fatalf("expected nil diagnostic, got %q", diag.Reason)
+	}
+}
+
+func TestParseStrict_ValidEnvelopeIsClean(t *testing.T) {
+	src := "#!/bin/sh\n# ---\n# summary: Build it.\n# ---\necho hi\n"
+	block, diag, err := ParseStrict(strings.NewReader(src))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if diag != nil {
+		t.Fatalf("expected nil diagnostic, got %q", diag.Reason)
+	}
+	if block.Summary != "Build it." {
+		t.Errorf("summary = %q", block.Summary)
+	}
+}
+
+func TestParseStrict_Unterminated(t *testing.T) {
+	src := "#!/bin/sh\n# ---\n# summary: Build it.\necho hi\n"
+	_, diag, err := ParseStrict(strings.NewReader(src))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if diag == nil || !strings.Contains(diag.Reason, "unterminated") {
+		t.Fatalf("expected unterminated diagnostic, got %+v", diag)
+	}
+}
+
+func TestParseStrict_MalformedYAML(t *testing.T) {
+	src := "#!/bin/sh\n# ---\n# summary: [unclosed\n# ---\necho hi\n"
+	_, diag, err := ParseStrict(strings.NewReader(src))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if diag == nil || !strings.Contains(diag.Reason, "YAML") {
+		t.Fatalf("expected YAML diagnostic, got %+v", diag)
+	}
+}
+
+func TestParseStrict_MultiLineSummary(t *testing.T) {
+	src := "#!/bin/sh\n# ---\n# summary: |\n#   line one\n#   line two\n# ---\necho hi\n"
+	_, diag, err := ParseStrict(strings.NewReader(src))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if diag == nil || !strings.Contains(diag.Reason, "single line") {
+		t.Fatalf("expected single-line diagnostic, got %+v", diag)
+	}
+}
+
+func TestParse_StillReturnsSummaryOnMultiLine(t *testing.T) {
+	// Parse stays best-effort: a multi-line summary is not an error and the
+	// summary text is still returned (behavior preserved by the refactor).
+	src := "#!/bin/sh\n# ---\n# summary: |\n#   line one\n#   line two\n# ---\necho hi\n"
+	got := parseString(t, src)
+	if !strings.Contains(got.Summary, "line one") {
+		t.Errorf("summary = %q, want it to contain %q", got.Summary, "line one")
+	}
+}

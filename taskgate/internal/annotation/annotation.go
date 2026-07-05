@@ -21,6 +21,13 @@ type AnnotationBlock struct {
 	Body    string
 }
 
+// Diagnostic describes why a present annotation envelope is invalid. A nil
+// *Diagnostic means either no envelope was present or the envelope parsed
+// cleanly.
+type Diagnostic struct {
+	Reason string
+}
+
 type annotationDoc struct {
 	Summary string `yaml:"summary"`
 	Body    string `yaml:"body"`
@@ -37,6 +44,22 @@ var SupportedPrefixes = []string{"#", "//", "--", ";", ""}
 // YAML), returns a zero AnnotationBlock and a nil error — annotations are
 // best-effort per FR-009.
 func Parse(r io.Reader) (AnnotationBlock, error) {
+	block, _, err := parseCore(r)
+	return block, err
+}
+
+// ParseStrict is like Parse but reports a *Diagnostic when an envelope is
+// present yet broken (unterminated, malformed YAML, or a multi-line summary),
+// so callers such as `taskgate validate` can distinguish an absent annotation
+// (nil diagnostic) from a broken one.
+func ParseStrict(r io.Reader) (AnnotationBlock, *Diagnostic, error) {
+	return parseCore(r)
+}
+
+// parseCore performs the scan + decode once. It returns the decoded block
+// (populated whenever the envelope's YAML decodes) plus an optional
+// Diagnostic describing why a present envelope is invalid.
+func parseCore(r io.Reader) (AnnotationBlock, *Diagnostic, error) {
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
 
@@ -45,7 +68,7 @@ func Parse(r io.Reader) (AnnotationBlock, error) {
 		lines = append(lines, scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
-		return AnnotationBlock{}, err
+		return AnnotationBlock{}, nil, err
 	}
 
 	start := 0
@@ -55,11 +78,11 @@ func Parse(r io.Reader) (AnnotationBlock, error) {
 
 	openIdx, prefix := findOpener(lines, start)
 	if openIdx < 0 {
-		return AnnotationBlock{}, nil
+		return AnnotationBlock{}, nil, nil
 	}
 	closeIdx := findCloser(lines, openIdx+1, prefix)
 	if closeIdx < 0 {
-		return AnnotationBlock{}, nil
+		return AnnotationBlock{}, &Diagnostic{Reason: "unterminated annotation envelope"}, nil
 	}
 
 	var buf bytes.Buffer
@@ -70,13 +93,17 @@ func Parse(r io.Reader) (AnnotationBlock, error) {
 
 	var doc annotationDoc
 	if err := yaml.Unmarshal(buf.Bytes(), &doc); err != nil {
-		return AnnotationBlock{}, nil
+		return AnnotationBlock{}, &Diagnostic{Reason: "malformed YAML in annotation: " + err.Error()}, nil
 	}
 
-	return AnnotationBlock{
+	block := AnnotationBlock{
 		Summary: strings.TrimRight(doc.Summary, " \t\r\n"),
 		Body:    strings.TrimRight(doc.Body, " \t\r\n"),
-	}, nil
+	}
+	if strings.Contains(block.Summary, "\n") {
+		return block, &Diagnostic{Reason: "summary must be a single line"}, nil
+	}
+	return block, nil, nil
 }
 
 func findOpener(lines []string, start int) (int, string) {
