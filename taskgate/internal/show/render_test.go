@@ -90,7 +90,7 @@ func TestRenderHumanDirectory_PathThenChildren(t *testing.T) {
 	if err := RenderHumanDirectory(&buf, target); err != nil {
 		t.Fatal(err)
 	}
-	want := ".taskgate/human/deploy\n\n  sub/\n  canary\tCanary.\n  prod\n"
+	want := ".taskgate/human/deploy\n\n  sub/\n  canary  Canary.\n  prod\n"
 	if buf.String() != want {
 		t.Errorf("got %q, want %q", buf.String(), want)
 	}
@@ -109,7 +109,7 @@ func TestRenderHumanTree_IndentsByDepth(t *testing.T) {
 	if err := RenderHumanTree(&buf, entries); err != nil {
 		t.Fatal(err)
 	}
-	want := "deploy/\n  prod\tProd.\nbuild\tBuild.\nbare\n"
+	want := "deploy/\n  prod  Prod.\nbuild   Build.\nbare\n"
 	if buf.String() != want {
 		t.Errorf("got %q, want %q", buf.String(), want)
 	}
