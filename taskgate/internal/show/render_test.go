@@ -150,6 +150,12 @@ func TestRenderAI_Listing(t *testing.T) {
 	if r1["summary"] != nil {
 		t.Errorf("row1 summary = %v, want null", r1["summary"])
 	}
+	if r0["name"] != "deploy" {
+		t.Errorf("row0 name = %v, want deploy", r0["name"])
+	}
+	if r1["name"] != "lint" {
+		t.Errorf("row1 name = %v, want lint", r1["name"])
+	}
 }
 
 func TestRenderAI_Task(t *testing.T) {
@@ -177,6 +183,9 @@ func TestRenderAI_Task(t *testing.T) {
 	}
 	if got["audience"] != "ai" {
 		t.Errorf("audience = %v", got["audience"])
+	}
+	if got["name"] != "lint" {
+		t.Errorf("name = %v, want lint", got["name"])
 	}
 }
 
@@ -243,9 +252,16 @@ func TestRenderAI_Directory(t *testing.T) {
 	if _, present := got["body"]; present {
 		t.Errorf("directory envelope must not carry body: %v", got)
 	}
+	if got["name"] != "deploy" {
+		t.Errorf("name = %v, want deploy", got["name"])
+	}
 	rows, ok := got["entries"].([]any)
 	if !ok || len(rows) != 1 {
 		t.Fatalf("entries = %v", got["entries"])
+	}
+	r0 := rows[0].(map[string]any)
+	if r0["name"] != "deploy/prod" {
+		t.Errorf("child name = %v, want deploy/prod", r0["name"])
 	}
 }
 

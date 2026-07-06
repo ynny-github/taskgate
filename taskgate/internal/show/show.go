@@ -125,6 +125,7 @@ func renderAITarget(w io.Writer, target ResolvedTarget) error {
 	case EntryKindTask:
 		env := taskEnvelope{
 			Kind:     "task",
+			Name:     runName(target.Entry.Path),
 			Path:     target.Entry.Path,
 			Summary:  summaryPtr(target.Entry.Annotation.Summary),
 			Body:     target.Entry.Annotation.Body,
@@ -134,6 +135,7 @@ func renderAITarget(w io.Writer, target ResolvedTarget) error {
 	case EntryKindDirectory:
 		env := directoryEnvelope{
 			Kind:     "directory",
+			Name:     runName(target.Entry.Path),
 			Path:     target.Entry.Path,
 			Audience: "ai",
 			Entries:  childRecords(target.Children),
