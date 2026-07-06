@@ -4,8 +4,9 @@ This project uses taskgate to run project tasks. Use these commands
 instead of guessing raw scripts.
 
 ## Discover tasks
-`taskgate ai show`          — list available tasks and directories
-`taskgate ai show <name>`   — show one task/dir's summary, body, and path
+`taskgate ai show`          — list every task and directory (whole tree)
+`taskgate ai show <name>`   — inspect one entry: a task's summary, body,
+                              and path, or a directory's immediate children
 
 ## Run a task
 `taskgate ai run <name> [args...]`
