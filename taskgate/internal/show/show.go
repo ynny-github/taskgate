@@ -135,8 +135,6 @@ func renderAITarget(w io.Writer, target ResolvedTarget) error {
 		env := directoryEnvelope{
 			Kind:     "directory",
 			Path:     target.Entry.Path,
-			Summary:  summaryPtr(target.Entry.Annotation.Summary),
-			Body:     target.Entry.Annotation.Body,
 			Audience: "ai",
 			Entries:  childRecords(target.Children),
 		}

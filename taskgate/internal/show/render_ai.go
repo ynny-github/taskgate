@@ -30,8 +30,6 @@ type taskEnvelope struct {
 type directoryEnvelope struct {
 	Kind     string        `json:"kind"`
 	Path     string        `json:"path"`
-	Summary  *string       `json:"summary"`
-	Body     string        `json:"body,omitempty"`
 	Audience string        `json:"audience"`
 	Entries  []childRecord `json:"entries"`
 }

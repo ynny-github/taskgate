@@ -125,83 +125,43 @@ func TestRenderHumanTask_SummaryOnly(t *testing.T) {
 	}
 }
 
-func TestRenderHumanDirectory_FullPayload(t *testing.T) {
+func TestRenderHumanDirectory_PathThenChildren(t *testing.T) {
 	target := ResolvedTarget{
-		Kind: EntryKindDirectory,
-		Entry: Entry{
-			Path: ".taskgate/human/deploy",
-			Kind: EntryKindDirectory,
-			Annotation: annotation.AnnotationBlock{
-				Summary: "Promote.",
-				Body:    "Idempotent.",
-			},
-		},
+		Kind:  EntryKindDirectory,
+		Entry: Entry{Path: ".taskgate/human/deploy", Kind: EntryKindDirectory},
 		Children: []Entry{
+			{Name: "sub", Path: ".taskgate/human/deploy/sub", Kind: EntryKindDirectory},
 			{Name: "canary", Path: ".taskgate/human/deploy/canary", Kind: EntryKindTask,
 				Annotation: annotation.AnnotationBlock{Summary: "Canary."}},
-			{Name: "prod", Path: ".taskgate/human/deploy/prod", Kind: EntryKindTask,
-				Annotation: annotation.AnnotationBlock{Summary: "Prod."}},
+			{Name: "prod", Path: ".taskgate/human/deploy/prod", Kind: EntryKindTask},
 		},
 	}
 	var buf bytes.Buffer
 	if err := RenderHumanDirectory(&buf, target); err != nil {
 		t.Fatal(err)
 	}
-	got := buf.String()
-	for _, sub := range []string{
-		".taskgate/human/deploy", "Promote.", "Idempotent.",
-		".taskgate/human/deploy/canary", "Canary.",
-		".taskgate/human/deploy/prod", "Prod.",
-	} {
-		if !strings.Contains(got, sub) {
-			t.Errorf("missing %q in: %q", sub, got)
-		}
+	want := ".taskgate/human/deploy\n\n  sub/\n  canary\tCanary.\n  prod\n"
+	if buf.String() != want {
+		t.Errorf("got %q, want %q", buf.String(), want)
 	}
 }
 
-func TestRenderHumanDirectory_NoIndex(t *testing.T) {
-	target := ResolvedTarget{
-		Kind: EntryKindDirectory,
-		Entry: Entry{
-			Path: ".taskgate/human/deploy",
-			Kind: EntryKindDirectory,
-		},
-		Children: []Entry{
-			{Name: "prod", Path: ".taskgate/human/deploy/prod", Kind: EntryKindTask,
-				Annotation: annotation.AnnotationBlock{Summary: "Prod."}},
-		},
+func TestRenderHumanTree_IndentsByDepth(t *testing.T) {
+	entries := []Entry{
+		{Name: "deploy", Kind: EntryKindDirectory, Depth: 0},
+		{Name: "prod", Kind: EntryKindTask, Depth: 1,
+			Annotation: annotation.AnnotationBlock{Summary: "Prod."}},
+		{Name: "build", Kind: EntryKindTask, Depth: 0,
+			Annotation: annotation.AnnotationBlock{Summary: "Build."}},
+		{Name: "bare", Kind: EntryKindTask, Depth: 0},
 	}
 	var buf bytes.Buffer
-	if err := RenderHumanDirectory(&buf, target); err != nil {
+	if err := RenderHumanTree(&buf, entries); err != nil {
 		t.Fatal(err)
 	}
-	got := buf.String()
-	lines := strings.Split(strings.TrimRight(got, "\n"), "\n")
-	// First non-empty line is the path; second non-empty is the child.
-	// There should be no indented summary line.
-	for _, line := range lines {
-		if strings.HasPrefix(line, "  ") && line != "" {
-			t.Errorf("unexpected indented summary line: %q", line)
-		}
-	}
-}
-
-func TestRenderHumanDirectory_NoChildren(t *testing.T) {
-	target := ResolvedTarget{
-		Kind: EntryKindDirectory,
-		Entry: Entry{
-			Path: ".taskgate/human/deploy",
-			Kind: EntryKindDirectory,
-			Annotation: annotation.AnnotationBlock{Summary: "Empty.", Body: "Just text."},
-		},
-	}
-	var buf bytes.Buffer
-	if err := RenderHumanDirectory(&buf, target); err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	if !strings.Contains(got, "Empty.") || !strings.Contains(got, "Just text.") {
-		t.Errorf("missing summary or body: %q", got)
+	want := "deploy/\n  prod\tProd.\nbuild\tBuild.\nbare\n"
+	if buf.String() != want {
+		t.Errorf("got %q, want %q", buf.String(), want)
 	}
 }
 
@@ -312,12 +272,8 @@ func TestRenderAI_Task_NullSummary(t *testing.T) {
 
 func TestRenderAI_Directory(t *testing.T) {
 	target := ResolvedTarget{
-		Kind: EntryKindDirectory,
-		Entry: Entry{
-			Path: ".taskgate/shared/deploy",
-			Kind: EntryKindDirectory,
-			Annotation: annotation.AnnotationBlock{Summary: "Promote.", Body: "Idempotent."},
-		},
+		Kind:  EntryKindDirectory,
+		Entry: Entry{Path: ".taskgate/shared/deploy", Kind: EntryKindDirectory},
 		Children: []Entry{
 			{Name: "prod", Path: ".taskgate/shared/deploy/prod", Kind: EntryKindTask,
 				Annotation: annotation.AnnotationBlock{Summary: "Prod."}},
@@ -330,6 +286,12 @@ func TestRenderAI_Directory(t *testing.T) {
 	got := decodeOneJSON(t, buf.Bytes())
 	if got["kind"] != "directory" {
 		t.Errorf("kind = %v", got["kind"])
+	}
+	if _, present := got["summary"]; present {
+		t.Errorf("directory envelope must not carry summary: %v", got)
+	}
+	if _, present := got["body"]; present {
+		t.Errorf("directory envelope must not carry body: %v", got)
 	}
 	rows, ok := got["entries"].([]any)
 	if !ok || len(rows) != 1 {
