@@ -50,6 +50,9 @@ type Entry struct {
 	// in the human form; absent from the AI envelope (the AI client sees
 	// summary: null instead).
 	Note string
+	// Depth is the entry's level in a recursive listing (0 at the merged
+	// root). Set by ResolveTree; zero for single-level resolutions.
+	Depth int
 }
 
 // ResolvedTarget is the outcome of a single-name lookup.
@@ -376,6 +379,50 @@ func resolveDirectoryChildren(audience Audience, workspaceDir, sub string) ([]En
 
 func joinName(segs []string) string {
 	return strings.Join(segs, "/")
+}
+
+// ResolveTree walks the entire merged view depth-first and returns a flat,
+// pre-order slice: each directory row is immediately followed by its
+// descendants. Entry.Depth records each row's level (root = 0). A collision
+// at any visited level short-circuits with (nil, report, nil).
+func ResolveTree(audience Audience, workspaceDir string) ([]Entry, *CollisionReport, error) {
+	return walkTree(audience, workspaceDir, "", 0)
+}
+
+func walkTree(audience Audience, workspaceDir, sub string, depth int) ([]Entry, *CollisionReport, error) {
+	aud, err := scanBucket(workspaceDir, audience.Bucket(), sub)
+	if err != nil {
+		return nil, nil, err
+	}
+	sh, err := scanBucket(workspaceDir, "shared", sub)
+	if err != nil {
+		return nil, nil, err
+	}
+	merged, col := mergeLevel(aud, sh)
+	if col != nil {
+		return nil, col, nil
+	}
+	var out []Entry
+	for _, e := range merged {
+		e.Depth = depth
+		out = append(out, e)
+		if e.Kind != EntryKindDirectory {
+			continue
+		}
+		childSub := e.Name
+		if sub != "" {
+			childSub = sub + "/" + e.Name
+		}
+		children, cCol, err := walkTree(audience, workspaceDir, childSub, depth+1)
+		if err != nil {
+			return nil, nil, err
+		}
+		if cCol != nil {
+			return nil, cCol, nil
+		}
+		out = append(out, children...)
+	}
+	return out, nil, nil
 }
 
 // ResolveRoot returns the merged-view entries at the root of the workspace.

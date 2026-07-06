@@ -516,6 +516,59 @@ func TestResolveRoot_SymlinkEscapesWorkspace(t *testing.T) {
 	}
 }
 
+func TestResolveTree_RecursesDepthFirst(t *testing.T) {
+	tmp := t.TempDir()
+	writeTaskFixture(t, tmp, ".taskgate/human/build", "Build.", "")
+	writeTaskFixture(t, tmp, ".taskgate/shared/deploy/prod", "Prod.", "")
+	writeTaskFixture(t, tmp, ".taskgate/shared/deploy/stg", "Stg.", "")
+	ws := filepath.Join(tmp, ".taskgate")
+
+	entries, col, err := ResolveTree(AudienceHuman, ws)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if col != nil {
+		t.Fatalf("unexpected collision: %+v", col)
+	}
+	type row struct {
+		name  string
+		depth int
+	}
+	got := make([]row, len(entries))
+	for i, e := range entries {
+		got[i] = row{e.Name, e.Depth}
+	}
+	want := []row{
+		{"deploy", 0}, // directories first at the root
+		{"prod", 1},
+		{"stg", 1},
+		{"build", 0},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d rows %v, want %d %v", len(got), got, len(want), want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("row %d = %+v, want %+v (full: %v)", i, got[i], want[i], got)
+		}
+	}
+}
+
+func TestResolveTree_CollisionAtDepth(t *testing.T) {
+	tmp := t.TempDir()
+	writeTaskFixture(t, tmp, ".taskgate/human/deploy/prod", "h.", "")
+	writeTaskFixture(t, tmp, ".taskgate/shared/deploy/prod", "s.", "")
+	ws := filepath.Join(tmp, ".taskgate")
+
+	_, col, err := ResolveTree(AudienceHuman, ws)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if col == nil {
+		t.Fatal("expected a collision report from a deep collision")
+	}
+}
+
 func TestResolveRoot_NonExecutableFileHidden(t *testing.T) {
 	tmp := t.TempDir()
 	writeTaskFixture(t, tmp, ".taskgate/human/build", "Build.", "")
