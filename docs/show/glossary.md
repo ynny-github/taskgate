@@ -8,7 +8,7 @@ A single executable file under `.taskgate/{human,ai,shared}/...`. Has a path; ma
 
 ## Directory entry
 
-A folder under `.taskgate/`. Has a path; may carry a summary and body via an optional dedicated description file placed inside it; lists its immediate children (which are themselves task entries or directory entries).
+A folder under `.taskgate/`. Has a path; carries no summary or body; lists its immediate children (which are themselves task entries or directory entries).
 
 ## Audience bucket
 
@@ -20,15 +20,11 @@ The user-facing tree that show exposes. For `taskgate show` it is the union of e
 
 ## Annotation block
 
-The summary + optional body, expressed in the project's chosen comment notation, embedded at the top of a task file or in a directory's description file. Two parts: a single-line **summary** and a free-form multi-line **body**. Format is defined in ADR-0001.
-
-## Directory description file
-
-An optional file inside a directory that carries that directory's annotation block. The reserved name is `_index` (see ADR-0002). Its presence is never required; its absence is not an error.
+The summary + optional body, expressed in the project's chosen comment notation, embedded at the top of a task file. Two parts: a single-line **summary** and a free-form multi-line **body**. Format is defined in ADR-0001.
 
 ## Output record
 
-The unit of output. Carries the entry's real physical path, its summary (possibly empty), its body (only for the single-target file/directory case), and — for a directory target — the list of immediate child records (path + summary only) in the merged view.
+The unit of output. Carries the entry's real physical path, its summary (possibly empty), its body (only for the single-target file case), and — for a directory target — the list of immediate child records (path + summary only) in the merged view.
 
 ## Audience mode
 

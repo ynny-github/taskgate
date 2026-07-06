@@ -1,6 +1,6 @@
 # ADR-0002: Directory description filename
 
-**Status**: Accepted (2026-06-16)
+**Status**: Superseded by ADR-0004 (2026-07-06) — the directory-description feature was removed; `_index` is now an ordinary file.
 
 ## Context
 

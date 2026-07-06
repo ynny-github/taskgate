@@ -7,7 +7,8 @@ Format: lightly adapted from Michael Nygard's ADR template. Each ADR has a Statu
 | # | Title | Status |
 |---|---|---|
 | 0001 | [Annotation format for task descriptions](0001-annotation-format.md) | Accepted |
-| 0002 | [Directory description filename](0002-directory-description-filename.md) | Accepted |
+| 0002 | [Directory description filename](0002-directory-description-filename.md) | Superseded by ADR-0004 |
 | 0003 | [AI output wire format](0003-ai-output-wire-format.md) | Accepted |
+| 0004 | [Recursive no-argument browse and executable-only listing](0004-recursive-browse-and-executable-filter.md) | Accepted |
 
 These ADRs were extracted from the original `specs/001-list-descriptions/research.md` written during the feature's plan phase. The implementation under `taskgate/`, the E2E suite (`taskgate/testdata/show/*.txtar`), and the CLI behaviour are the canonical source of truth; the ADRs record **why** the implementation looks the way it does, including alternatives that were considered and rejected.
