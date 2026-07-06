@@ -9,25 +9,22 @@ import (
 	"github.com/ynny-github/taskgate/tests/e2e/testutil"
 )
 
-var _ = Describe("taskgate show: FR-001 — root browse merges human/ and shared/", func() {
+var _ = Describe("taskgate show: no-argument browse lists the whole tree", func() {
 	var ws *testutil.Workspace
 
 	BeforeEach(func() {
 		ws = testutil.New(GinkgoT().TempDir(), TaskgateBinary)
 	})
 
-	Context("annotated tasks from both buckets", func() {
-		It("appear in merged view with summaries", func() {
-			ws.WriteAnnotatedTask(".taskgate/human/build", "Build the project for the current platform.", "")
-			ws.WriteAnnotatedTask(".taskgate/shared/lint", "Lint the codebase with project rules.", "")
+	Context("nested tasks across buckets", func() {
+		It("renders a depth-first indented tree", func() {
+			ws.WriteAnnotatedTask(".taskgate/human/build", "Build.", "")
+			ws.WriteAnnotatedTask(".taskgate/shared/deploy/prod", "Prod.", "")
+			ws.WriteAnnotatedTask(".taskgate/shared/deploy/stg", "Stg.", "")
 			out := ws.Run("show")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(testutil.Lines(
-				testutil.Cols(".taskgate/human/build", "Build the project for the current platform."),
-				testutil.Cols(".taskgate/shared/lint", "Lint the codebase with project rules."),
-				"",
-			)))
+			Expect(out.Stdout).To(testutil.MatchGolden("browse_recursive"))
 		})
 	})
 })
@@ -40,15 +37,12 @@ var _ = Describe("taskgate show: unannotated tasks still appear in root browse",
 	})
 
 	Context("bare task with no annotation", func() {
-		It("appears with path only, no error", func() {
+		It("appears with basename only, no error", func() {
 			ws.WriteBareTask(".taskgate/shared/bare")
 			out := ws.Run("show")
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
-			Expect(out.Stdout).To(Equal(testutil.Lines(
-				".taskgate/shared/bare",
-				"",
-			)))
+			Expect(out.Stdout).To(Equal(testutil.Lines("bare", "")))
 		})
 	})
 })

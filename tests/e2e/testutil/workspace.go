@@ -66,44 +66,6 @@ func (w *Workspace) WriteBareTask(relpath string) {
 	w.WriteFile(relpath, "#!/bin/sh\necho hi\n", true)
 }
 
-// WriteIndex writes a non-executable _index with the YAML annotation envelope.
-// prefix is typically "# " (use empty for bare YAML _index).
-func (w *Workspace) WriteIndex(relpath, summary, body, prefix string) {
-	lines := []string{prefix + "---"}
-	if summary != "" {
-		lines = append(lines, prefix+"summary: "+summary)
-	}
-	if body != "" {
-		lines = append(lines, prefix+"body: |")
-		for _, line := range strings.Split(body, "\n") {
-			lines = append(lines, prefix+"  "+line)
-		}
-	}
-	lines = append(lines, prefix+"---", "")
-	w.WriteFile(relpath, strings.Join(lines, "\n"), false)
-}
-
-// WriteRunnableIndex writes an executable _index with shebang + annotation.
-func (w *Workspace) WriteRunnableIndex(relpath, summary, body string) {
-	lines := []string{"#!/bin/sh", "# ---"}
-	if summary != "" {
-		lines = append(lines, "# summary: "+summary)
-	}
-	if body != "" {
-		lines = append(lines, "# body: |")
-		for _, line := range strings.Split(body, "\n") {
-			lines = append(lines, "#   "+line)
-		}
-	}
-	lines = append(lines, "# ---", `echo "_index can also run"`, "")
-	w.WriteFile(relpath, strings.Join(lines, "\n"), true)
-}
-
-// WriteMalformedIndex writes an _index with a known-broken YAML envelope.
-func (w *Workspace) WriteMalformedIndex(relpath string) {
-	w.WriteFile(relpath, "# ---\n# summary: [unclosed_array\n# ---\n", false)
-}
-
 // WriteLeadingCommentsTask writes a sh task with a shellcheck pragma and copyright
 // before the YAML annotation envelope.
 func (w *Workspace) WriteLeadingCommentsTask(relpath, summary string) {

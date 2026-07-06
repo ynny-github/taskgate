@@ -1,0 +1,4 @@
+.taskgate/human/deploy
+
+  canary	Promote to canary.
+  prod	Promote to production.
