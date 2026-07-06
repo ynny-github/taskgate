@@ -6,37 +6,6 @@ import (
 	"strings"
 )
 
-// RenderHumanListing writes one row per entry in the form
-// `<real path>  <summary>`. When summary is empty the row is path-only.
-func RenderHumanListing(w io.Writer, entries []Entry) error {
-	for _, e := range entries {
-		if err := writeListingRow(w, e); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func writeListingRow(w io.Writer, e Entry) error {
-	path := displayPath(e)
-	summary := strings.TrimSpace(e.Annotation.Summary)
-	if summary == "" {
-		_, err := fmt.Fprintln(w, path)
-		return err
-	}
-	_, err := fmt.Fprintf(w, "%s\t%s\n", path, summary)
-	return err
-}
-
-// displayPath returns the path string used in human output. Directory
-// entries get a trailing "/" so the listing visually groups them.
-func displayPath(e Entry) string {
-	if e.Kind == EntryKindDirectory {
-		return e.Path + "/"
-	}
-	return e.Path
-}
-
 // RenderHumanTask writes the single-task detail view: path, blank line,
 // indented summary, blank line, body. Body block is omitted entirely when
 // body is empty (FR-003a). Summary line is omitted when no summary.

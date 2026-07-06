@@ -38,7 +38,7 @@ func Run(audience Audience, args []string, stdout, stderr io.Writer) (exitCode i
 }
 
 func runRoot(audience Audience, ws string, stdout, stderr io.Writer) (int, error) {
-	entries, col, err := ResolveRoot(audience, ws)
+	entries, col, err := ResolveTree(audience, ws)
 	if err != nil {
 		return ExitGeneric, err
 	}
@@ -49,7 +49,7 @@ func runRoot(audience Audience, ws string, stdout, stderr io.Writer) (int, error
 		return ExitSuccess, renderAIRootListing(stdout, entries)
 	}
 	emitNotices(stderr, entries)
-	return ExitSuccess, RenderHumanListing(stdout, entries)
+	return ExitSuccess, RenderHumanTree(stdout, entries)
 }
 
 // emitNotices writes a "<path>: <note>" line to stderr for each entry

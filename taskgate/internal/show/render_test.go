@@ -28,56 +28,6 @@ func decodeOneJSON(t *testing.T, buf []byte) map[string]any {
 	return got
 }
 
-func TestRenderHumanListing_BasicRows(t *testing.T) {
-	entries := []Entry{
-		{Name: "deploy", Path: ".taskgate/shared/deploy", Kind: EntryKindDirectory,
-			Annotation: annotation.AnnotationBlock{Summary: "Promote a build."}},
-		{Name: "build", Path: ".taskgate/human/build", Kind: EntryKindTask,
-			Annotation: annotation.AnnotationBlock{Summary: "Build the project."}},
-	}
-	var buf bytes.Buffer
-	if err := RenderHumanListing(&buf, entries); err != nil {
-		t.Fatal(err)
-	}
-	got := buf.String()
-	if !strings.Contains(got, ".taskgate/shared/deploy/") {
-		t.Errorf("missing deploy row in output: %q", got)
-	}
-	if !strings.Contains(got, "Promote a build.") {
-		t.Errorf("missing deploy summary: %q", got)
-	}
-	if !strings.Contains(got, ".taskgate/human/build") {
-		t.Errorf("missing build row in output: %q", got)
-	}
-	if !strings.Contains(got, "Build the project.") {
-		t.Errorf("missing build summary: %q", got)
-	}
-}
-
-func TestRenderHumanListing_NoSummaryPathOnly(t *testing.T) {
-	entries := []Entry{
-		{Name: "test", Path: ".taskgate/shared/test", Kind: EntryKindTask},
-	}
-	var buf bytes.Buffer
-	if err := RenderHumanListing(&buf, entries); err != nil {
-		t.Fatal(err)
-	}
-	got := strings.TrimRight(buf.String(), "\n")
-	if got != ".taskgate/shared/test" {
-		t.Errorf("got %q, want path-only row %q", got, ".taskgate/shared/test")
-	}
-}
-
-func TestRenderHumanListing_Empty(t *testing.T) {
-	var buf bytes.Buffer
-	if err := RenderHumanListing(&buf, nil); err != nil {
-		t.Fatal(err)
-	}
-	if buf.Len() != 0 {
-		t.Errorf("expected empty output, got %q", buf.String())
-	}
-}
-
 func TestRenderHumanTask_WithBody(t *testing.T) {
 	e := Entry{
 		Path: ".taskgate/human/build",
