@@ -349,3 +349,17 @@ func TestRenderHumanTask_PathOnly(t *testing.T) {
 		t.Errorf("got %q, want just the path", buf.String())
 	}
 }
+
+func TestRunName(t *testing.T) {
+	cases := map[string]string{
+		".taskgate/human/build":        "build",
+		".taskgate/shared/deploy/prod":  "deploy/prod",
+		".taskgate/shared/deploy":       "deploy",
+		".taskgate/ai/deep/nested/task": "deep/nested/task",
+	}
+	for path, want := range cases {
+		if got := runName(path); got != want {
+			t.Errorf("runName(%q) = %q, want %q", path, got, want)
+		}
+	}
+}

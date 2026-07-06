@@ -3,6 +3,7 @@ package show
 import (
 	"encoding/json"
 	"io"
+	"strings"
 )
 
 // envelopes per contracts/ai-output.md.
@@ -105,4 +106,15 @@ func renderAIRootListing(w io.Writer, entries []Entry) error {
 		Audience: "ai",
 		Entries:  childRecords(entries),
 	})
+}
+
+// runName maps a physical entry path onto its run-style name by dropping the
+// ".taskgate/<bucket>/" prefix (bucket is human, ai, or shared). Returns ""
+// when path has fewer than three slash-separated segments.
+func runName(path string) string {
+	segs := strings.Split(path, "/")
+	if len(segs) < 3 {
+		return ""
+	}
+	return strings.Join(segs[2:], "/")
 }
