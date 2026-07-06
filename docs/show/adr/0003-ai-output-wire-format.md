@@ -19,9 +19,9 @@ Scale: tens to low-hundreds of entries per invocation. Not a streaming protocol.
 Four shapes:
 
 ```json
-{"kind":"listing",   "audience":"…", "entries":[ {"path":"…","kind":"task|directory","summary":"…|null"}, … ]}
-{"kind":"task",      "path":"…", "summary":"…|null", "body":"…",       "audience":"…"}
-{"kind":"directory", "path":"…", "summary":"…|null", "body":"…",       "audience":"…", "entries":[ … ]}
+{"kind":"listing",   "audience":"…", "entries":[ {"name":"…","path":"…","kind":"task|directory","summary":"…|null"}, … ]}
+{"kind":"task",      "name":"…", "path":"…", "summary":"…|null", "body":"…", "audience":"…"}
+{"kind":"directory", "name":"…", "path":"…", "audience":"…", "entries":[ … ]}
 {"kind":"error",     "error":"<code>", "message":"…", …}
 ```
 
@@ -29,8 +29,9 @@ Field rules:
 
 - `kind` always present at the top level, one of `listing` / `task` / `directory` / `error`.
 - `summary` is always present on entry-describing records; `null` (not omitted) when no annotation was extracted.
+- `name` is the entry's `run`-style name (bare or slash-separated), present on every entry-describing record and on the `task`/`directory` envelopes. It equals `path` with the `.taskgate/<bucket>/` prefix removed. `path` remains the physical location; `name` is what `taskgate run` / `taskgate ai show` accept.
 - `body` is omitted when no body annotation; never `null`.
-- Children in `entries[]` carry `path` + `kind` + `summary` only — never `body`, never recursive `entries`.
+- Children in `entries[]` carry `name` + `path` + `kind` + `summary` only — never `body`, never recursive `entries`.
 - On any error, exit is non-zero AND a structured `error` envelope is emitted on **stdout** (not stderr), so AI clients can `JSON.parse` a single stream regardless of outcome. No partial listing on error.
 
 Stability: the schema is **additive**. New fields may be added in future releases; removing or renaming a field is a breaking change. Consumers MUST ignore unknown fields and SHOULD treat unrecognized top-level `kind` values as a forward-compat soft failure.

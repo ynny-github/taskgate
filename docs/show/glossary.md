@@ -24,7 +24,7 @@ The summary + optional body, expressed in the project's chosen comment notation,
 
 ## Output record
 
-The unit of output. Carries the entry's real physical path, its summary (possibly empty), its body (only for the single-target file case), and — for a directory target — the list of immediate child records (path + summary only) in the merged view.
+The unit of output. Carries the entry's real physical path, its summary (possibly empty), its body (only for the single-target file case), and — for a directory target — the list of immediate child records (path + summary only) in the merged view. In the AI form each record and the file/directory envelopes also carry a `name`: the entry's `run`-style name (its physical `path` minus the `.taskgate/<bucket>/` prefix).
 
 ## Audience mode
 
