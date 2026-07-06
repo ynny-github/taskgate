@@ -28,4 +28,4 @@ The unit of output. Carries the entry's real physical path, its summary (possibl
 
 ## Audience mode
 
-The output shape and the filter applied. **Human** mode (`taskgate show`) emits formatted text and merges `shared/` ∪ `human/`. **AI** mode (`taskgate ai show`) emits a structured form (see ADR-0003) and merges `shared/` ∪ `ai/`. Both carry the same information for any given invocation.
+The output shape and the filter applied. **Human** mode (`taskgate show`) emits formatted text and merges `shared/` ∪ `human/`. **AI** mode (`taskgate ai show`) emits a structured form (see ADR-0003) and merges `shared/` ∪ `ai/`. Both carry the same set of entries for any given invocation; the AI form additionally reports each entry's full physical path, while the human form shows basenames in its recursive/directory tree (ADR-0004).

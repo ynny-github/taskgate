@@ -322,6 +322,20 @@ func TestRenderAI_Error_IO(t *testing.T) {
 	}
 }
 
+func TestRenderHumanDirectory_NoChildren(t *testing.T) {
+	target := ResolvedTarget{
+		Kind:  EntryKindDirectory,
+		Entry: Entry{Path: ".taskgate/human/empty", Kind: EntryKindDirectory},
+	}
+	var buf bytes.Buffer
+	if err := RenderHumanDirectory(&buf, target); err != nil {
+		t.Fatal(err)
+	}
+	if buf.String() != ".taskgate/human/empty\n" {
+		t.Errorf("got %q, want path-only line", buf.String())
+	}
+}
+
 func TestRenderHumanTask_PathOnly(t *testing.T) {
 	e := Entry{
 		Path: ".taskgate/shared/test",

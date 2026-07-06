@@ -92,7 +92,8 @@ func bucketRelPath(bucket string, sub string) string {
 // Returns map keyed by basename pointing at the bucket-qualified Entry
 // (so the caller can detect cross-bucket collisions and merge).
 // Non-executable regular files are hidden (FR-014); an escaping/broken
-// symlink (note != "") is left listed regardless of executable bit.
+// symlink (symlinkEscapeNote != "") is exempt and stays listed regardless
+// of executable bit.
 func scanBucket(workspaceDir, bucket, sub string) (map[string]Entry, error) {
 	absDir := filepath.Join(workspaceDir, bucket, sub)
 	dirEntries, err := os.ReadDir(absDir)
@@ -111,9 +112,11 @@ func scanBucket(workspaceDir, bucket, sub string) (map[string]Entry, error) {
 			kind = EntryKindDirectory
 		}
 		ann, note := loadAnnotationForWithNote(absChild, kind)
-		if kind == EntryKindTask && note == "" && !isExecutable(absChild) {
+		if kind == EntryKindTask && !isExecutable(absChild) && symlinkEscapeNote(absChild) == "" {
 			// Non-executable files cannot be run; hide them (FR-014).
-			// An escaping/broken symlink (note != "") is left listed.
+			// Escaping/broken symlinks are exempt and stay listed with
+			// their note; a permission-denied note does NOT exempt a
+			// plain non-executable file.
 			continue
 		}
 		out[name] = Entry{
@@ -346,7 +349,7 @@ func scanBucketSegment(workspaceDir, bucket, sub, seg string) (*Entry, error) {
 		kind = EntryKindDirectory
 	}
 	ann, note := loadAnnotationForWithNote(abs, kind)
-	if kind == EntryKindTask && note == "" && !isExecutable(abs) {
+	if kind == EntryKindTask && !isExecutable(abs) && symlinkEscapeNote(abs) == "" {
 		return nil, nil // non-executable file: not resolvable (FR-014)
 	}
 	return &Entry{
@@ -427,6 +430,7 @@ func walkTree(audience Audience, workspaceDir, sub string, depth int) ([]Entry, 
 
 // ResolveRoot returns the merged-view entries at the root of the workspace.
 // On collision returns (nil, report, nil). On read error returns (nil, nil, err).
+// Retained as a single-level entry point (used by tests); the recursive browse uses ResolveTree.
 func ResolveRoot(audience Audience, workspaceDir string) ([]Entry, *CollisionReport, error) {
 	aud, err := scanBucket(workspaceDir, audience.Bucket(), "")
 	if err != nil {

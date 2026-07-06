@@ -451,6 +451,41 @@ func TestResolveName_Directory_CollisionInChildren(t *testing.T) {
 	}
 }
 
+func TestResolveRoot_NonExecutableUnreadableFileHidden(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("root bypasses file permissions; this test only runs for unprivileged users")
+	}
+	tmp := t.TempDir()
+	writeTaskFixture(t, tmp, ".taskgate/human/build", "Build.", "")
+	secret := filepath.Join(tmp, ".taskgate/human/secret")
+	if err := os.MkdirAll(filepath.Dir(secret), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Non-executable AND unreadable: must be hidden (not listed, not resolvable).
+	if err := os.WriteFile(secret, []byte("x\n"), 0o000); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, col := resolveRoot(t, tmp, AudienceHuman)
+	if col != nil {
+		t.Fatalf("unexpected collision: %+v", col)
+	}
+	for _, e := range entries {
+		if e.Name == "secret" {
+			t.Errorf("non-executable unreadable file must be hidden, got %v", entryNames(entries))
+		}
+	}
+
+	ws := filepath.Join(tmp, ".taskgate")
+	_, _, nf, err := ResolveName(AudienceHuman, ws, "secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nf == nil {
+		t.Error("named non-executable unreadable file must resolve to not-found")
+	}
+}
+
 func TestResolveRoot_UnreadableExecutableFile(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("root bypasses file permissions; this test only runs for unprivileged users")

@@ -55,6 +55,7 @@ var _ = Describe("taskgate ai show: FR-001 — ai browse merges shared/ and ai/,
 		ws.WriteAnnotatedTask(".taskgate/human/build", "Build.", "")
 		ws.WriteAnnotatedTask(".taskgate/shared/lint", "Lint.", "")
 		ws.WriteAnnotatedTask(".taskgate/ai/analyze", "Analyze.", "")
+		ws.WriteAnnotatedTask(".taskgate/ai/deep/nested", "Nested.", "")
 	})
 
 	Context("ai show with no argument", func() {
@@ -70,6 +71,7 @@ var _ = Describe("taskgate ai show: FR-001 — ai browse merges shared/ and ai/,
 			Expect(out.Stdout).To(ContainSubstring(".taskgate/ai/analyze"))
 			Expect(out.Stdout).To(ContainSubstring(".taskgate/shared/lint"))
 			Expect(out.Stdout).NotTo(ContainSubstring(".taskgate/human/build"))
+			Expect(out.Stdout).To(ContainSubstring(".taskgate/ai/deep/nested"))
 		})
 	})
 })
