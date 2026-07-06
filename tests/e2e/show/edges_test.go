@@ -26,7 +26,7 @@ var _ = Describe("taskgate show: unreadable file does not abort listing", func()
 			ws.WriteAnnotatedTask(".taskgate/shared/lint", "Lint.", "")
 			out := ws.Run("show")
 			Expect(out.ExitCode).To(Equal(0))
-			Expect(out.Stdout).To(ContainSubstring(".taskgate/shared/lint"))
+			Expect(out.Stdout).To(ContainSubstring("lint"))
 			Expect(out.Stdout).To(ContainSubstring("Lint."))
 		})
 	})
@@ -46,7 +46,7 @@ var _ = Describe("taskgate show: whitespace-only summary treated as empty", func
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
 			Expect(out.Stdout).To(Equal(testutil.Lines(
-				".taskgate/human/build",
+				"build",
 				"",
 			)))
 		})
@@ -67,7 +67,7 @@ var _ = Describe("taskgate show: leading comments before YAML envelope are skipp
 			Expect(out.ExitCode).To(Equal(0))
 			Expect(out.Stderr).To(BeEmpty())
 			Expect(out.Stdout).To(Equal(testutil.Lines(
-				testutil.Cols(".taskgate/human/build", "Build the project."),
+				testutil.Cols("build", "Build the project."),
 				"",
 			)))
 		})
@@ -90,7 +90,7 @@ var _ = Describe("taskgate show: symlinks escaping .taskgate/ are listed but not
 			ws.WriteAnnotatedTask("outside", "Secret outside summary.", "")
 			out := ws.Run("show")
 			Expect(out.ExitCode).To(Equal(0))
-			Expect(out.Stdout).To(ContainSubstring(".taskgate/human/escapee"))
+			Expect(out.Stdout).To(ContainSubstring("escapee"))
 			Expect(out.Stdout).NotTo(ContainSubstring("Secret outside summary"))
 			Expect(out.Stderr).To(ContainSubstring(".taskgate/human/escapee"))
 		})
