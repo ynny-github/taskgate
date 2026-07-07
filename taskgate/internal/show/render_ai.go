@@ -3,11 +3,13 @@ package show
 import (
 	"encoding/json"
 	"io"
+	"strings"
 )
 
 // envelopes per contracts/ai-output.md.
 
 type childRecord struct {
+	Name    string  `json:"name"`
 	Path    string  `json:"path"`
 	Kind    string  `json:"kind"`
 	Summary *string `json:"summary"`
@@ -21,6 +23,7 @@ type listingEnvelope struct {
 
 type taskEnvelope struct {
 	Kind     string  `json:"kind"`
+	Name     string  `json:"name"`
 	Path     string  `json:"path"`
 	Summary  *string `json:"summary"`
 	Body     string  `json:"body,omitempty"`
@@ -29,6 +32,7 @@ type taskEnvelope struct {
 
 type directoryEnvelope struct {
 	Kind     string        `json:"kind"`
+	Name     string        `json:"name"`
 	Path     string        `json:"path"`
 	Audience string        `json:"audience"`
 	Entries  []childRecord `json:"entries"`
@@ -91,6 +95,7 @@ func childRecords(entries []Entry) []childRecord {
 	out := make([]childRecord, 0, len(entries))
 	for _, e := range entries {
 		out = append(out, childRecord{
+			Name:    runName(e.Path),
 			Path:    e.Path,
 			Kind:    kindString(e.Kind),
 			Summary: summaryPtr(e.Annotation.Summary),
@@ -105,4 +110,15 @@ func renderAIRootListing(w io.Writer, entries []Entry) error {
 		Audience: "ai",
 		Entries:  childRecords(entries),
 	})
+}
+
+// runName maps a physical entry path onto its run-style name by dropping the
+// ".taskgate/<bucket>/" prefix (bucket is human, ai, or shared). Returns ""
+// when path has fewer than three slash-separated segments.
+func runName(path string) string {
+	segs := strings.Split(path, "/")
+	if len(segs) < 3 {
+		return ""
+	}
+	return strings.Join(segs[2:], "/")
 }

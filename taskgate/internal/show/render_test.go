@@ -90,7 +90,7 @@ func TestRenderHumanDirectory_PathThenChildren(t *testing.T) {
 	if err := RenderHumanDirectory(&buf, target); err != nil {
 		t.Fatal(err)
 	}
-	want := ".taskgate/human/deploy\n\n  sub/\n  canary\tCanary.\n  prod\n"
+	want := ".taskgate/human/deploy\n\n  sub/\n  canary  Canary.\n  prod\n"
 	if buf.String() != want {
 		t.Errorf("got %q, want %q", buf.String(), want)
 	}
@@ -109,7 +109,7 @@ func TestRenderHumanTree_IndentsByDepth(t *testing.T) {
 	if err := RenderHumanTree(&buf, entries); err != nil {
 		t.Fatal(err)
 	}
-	want := "deploy/\n  prod\tProd.\nbuild\tBuild.\nbare\n"
+	want := "deploy/\n  prod  Prod.\nbuild   Build.\nbare\n"
 	if buf.String() != want {
 		t.Errorf("got %q, want %q", buf.String(), want)
 	}
@@ -150,6 +150,12 @@ func TestRenderAI_Listing(t *testing.T) {
 	if r1["summary"] != nil {
 		t.Errorf("row1 summary = %v, want null", r1["summary"])
 	}
+	if r0["name"] != "deploy" {
+		t.Errorf("row0 name = %v, want deploy", r0["name"])
+	}
+	if r1["name"] != "lint" {
+		t.Errorf("row1 name = %v, want lint", r1["name"])
+	}
 }
 
 func TestRenderAI_Task(t *testing.T) {
@@ -177,6 +183,9 @@ func TestRenderAI_Task(t *testing.T) {
 	}
 	if got["audience"] != "ai" {
 		t.Errorf("audience = %v", got["audience"])
+	}
+	if got["name"] != "lint" {
+		t.Errorf("name = %v, want lint", got["name"])
 	}
 }
 
@@ -243,9 +252,16 @@ func TestRenderAI_Directory(t *testing.T) {
 	if _, present := got["body"]; present {
 		t.Errorf("directory envelope must not carry body: %v", got)
 	}
+	if got["name"] != "deploy" {
+		t.Errorf("name = %v, want deploy", got["name"])
+	}
 	rows, ok := got["entries"].([]any)
 	if !ok || len(rows) != 1 {
 		t.Fatalf("entries = %v", got["entries"])
+	}
+	r0 := rows[0].(map[string]any)
+	if r0["name"] != "deploy/prod" {
+		t.Errorf("child name = %v, want deploy/prod", r0["name"])
 	}
 }
 
@@ -347,5 +363,19 @@ func TestRenderHumanTask_PathOnly(t *testing.T) {
 	}
 	if strings.TrimSpace(buf.String()) != ".taskgate/shared/test" {
 		t.Errorf("got %q, want just the path", buf.String())
+	}
+}
+
+func TestRunName(t *testing.T) {
+	cases := map[string]string{
+		".taskgate/human/build":        "build",
+		".taskgate/shared/deploy/prod":  "deploy/prod",
+		".taskgate/shared/deploy":       "deploy",
+		".taskgate/ai/deep/nested/task": "deep/nested/task",
+	}
+	for path, want := range cases {
+		if got := runName(path); got != want {
+			t.Errorf("runName(%q) = %q, want %q", path, got, want)
+		}
 	}
 }
