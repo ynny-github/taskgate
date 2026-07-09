@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -74,8 +76,11 @@ func snapshotInstall(cmd *cobra.Command, _ []string) error {
 
 	for subdir, scripts := range map[string][]string{"ai": aiScripts, "shared": sharedScripts} {
 		for _, name := range scripts {
-			src := filepath.Join(taskgateDir, subdir, name)
-			dst := filepath.Join(dir, name)
+			src := filepath.Join(taskgateDir, subdir, filepath.FromSlash(name))
+			dst := filepath.Join(dir, filepath.FromSlash(name))
+			if err := os.MkdirAll(filepath.Dir(dst), 0700); err != nil {
+				return fmt.Errorf("cannot create directory for %q: %w", name, err)
+			}
 			if err := copyFile(src, dst); err != nil {
 				return fmt.Errorf("cannot copy %q: %w", name, err)
 			}
@@ -87,16 +92,39 @@ func snapshotInstall(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
+// listScripts recursively walks dir and returns every regular file as a
+// slash-relative path (preserving subdirectory structure). Dotfiles are
+// skipped to match internal/validate's bucket walker. A missing dir is
+// reported via the returned error (callers tolerate os.IsNotExist).
 func listScripts(dir string) ([]string, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-	names := make([]string, 0, len(entries))
-	for _, e := range entries {
-		if !e.IsDir() {
-			names = append(names, e.Name())
+	var names []string
+	var walk func(sub string) error
+	walk = func(sub string) error {
+		entries, err := os.ReadDir(filepath.Join(dir, filepath.FromSlash(sub)))
+		if err != nil {
+			return err
 		}
+		for _, e := range entries {
+			name := e.Name()
+			if strings.HasPrefix(name, ".") {
+				continue // skip .gitkeep and other dotfiles
+			}
+			rel := name
+			if sub != "" {
+				rel = path.Join(sub, name)
+			}
+			if e.IsDir() {
+				if err := walk(rel); err != nil {
+					return err
+				}
+				continue
+			}
+			names = append(names, rel)
+		}
+		return nil
+	}
+	if err := walk(""); err != nil {
+		return nil, err
 	}
 	return names, nil
 }

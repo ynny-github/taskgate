@@ -50,6 +50,45 @@ func TestSnapshotInstall_CopiesAIAndShared(t *testing.T) {
 	}
 }
 
+func TestSnapshotInstall_CopiesNestedDirectories(t *testing.T) {
+	tmp := t.TempDir()
+	makeScript(t, filepath.Join(tmp, ".taskgate", "ai", "group"), "deploy", "#!/bin/sh\necho deploy")
+	makeScript(t, filepath.Join(tmp, ".taskgate", "shared", "lib", "nested"), "build", "#!/bin/sh\necho build")
+
+	snapDir := t.TempDir()
+	snapshotDirOverride = func(string) (string, error) { return snapDir, nil }
+	t.Cleanup(func() { snapshotDirOverride = nil })
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chdir(origDir) })
+
+	var out bytes.Buffer
+	root := newRootCmd()
+	root.SetOut(&out)
+	root.SetArgs([]string{"snapshot", "install"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, rel := range []string{
+		filepath.Join("group", "deploy"),
+		filepath.Join("lib", "nested", "build"),
+	} {
+		if _, err := os.Stat(filepath.Join(snapDir, rel)); err != nil {
+			t.Errorf("expected %s in snapshot dir: %v", rel, err)
+		}
+	}
+	if !strings.Contains(out.String(), "installed 2 script(s)") {
+		t.Errorf("expected count of 2, got %q", out.String())
+	}
+}
+
 func TestSnapshotInstall_ErrorOnCollision(t *testing.T) {
 	tmp := t.TempDir()
 	makeScript(t, filepath.Join(tmp, ".taskgate", "ai"), "build", "#!/bin/sh\necho ai-build")
