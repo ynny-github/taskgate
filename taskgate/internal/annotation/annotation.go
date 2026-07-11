@@ -237,3 +237,109 @@ func stripPrefix(line, prefix string) string {
 	}
 	return rest
 }
+
+// RawSpec is the args/flags CLI declaration as literally written, before
+// semantic validation (which lives in internal/cliparse). A zero value means
+// no spec was declared.
+type RawSpec struct {
+	Args  []RawArg
+	Flags []RawFlag
+}
+
+// RawArg is one positional-argument declaration.
+type RawArg struct {
+	Name     string
+	Help     string
+	Choices  []string
+	Required bool
+	Default  *string // nil = key absent
+	Variadic bool
+}
+
+// RawFlag is one flag declaration. Type is "", "string", or "bool".
+type RawFlag struct {
+	Name    string
+	Short   string
+	Help    string
+	Type    string
+	Choices []string
+	Default *string // nil = key absent
+}
+
+// ParseArgSpec extracts the args/flags declaration. Like ParseDeps, a present
+// but structurally malformed block (args/flags not a list, an entry that is not
+// a mapping, or an entry missing `name`) yields a *Diagnostic so run/validate
+// can refuse. Absent keys and an absent envelope yield an empty RawSpec.
+func ParseArgSpec(r io.Reader) (RawSpec, *Diagnostic, error) {
+	yamlBytes, found, diag, err := scanEnvelope(r)
+	if err != nil {
+		return RawSpec{}, nil, err
+	}
+	if !found || diag != nil {
+		return RawSpec{}, diag, nil
+	}
+	var raw struct {
+		Args  yaml.Node `yaml:"args"`
+		Flags yaml.Node `yaml:"flags"`
+	}
+	if err := yaml.Unmarshal(yamlBytes, &raw); err != nil {
+		return RawSpec{}, &Diagnostic{Reason: "malformed YAML in annotation: " + err.Error()}, nil
+	}
+	args, d := decodeArgs(raw.Args)
+	if d != nil {
+		return RawSpec{}, d, nil
+	}
+	flags, d := decodeFlags(raw.Flags)
+	if d != nil {
+		return RawSpec{}, d, nil
+	}
+	return RawSpec{Args: args, Flags: flags}, nil, nil
+}
+
+func decodeArgs(node yaml.Node) ([]RawArg, *Diagnostic) {
+	if node.Kind == 0 {
+		return nil, nil
+	}
+	if node.Kind != yaml.SequenceNode {
+		return nil, &Diagnostic{Reason: "args must be a list"}
+	}
+	out := make([]RawArg, 0, len(node.Content))
+	for _, item := range node.Content {
+		if item.Kind != yaml.MappingNode {
+			return nil, &Diagnostic{Reason: "each args entry must be a mapping"}
+		}
+		var a RawArg
+		if err := item.Decode(&a); err != nil {
+			return nil, &Diagnostic{Reason: "malformed args entry: " + err.Error()}
+		}
+		if a.Name == "" {
+			return nil, &Diagnostic{Reason: "each args entry needs a name"}
+		}
+		out = append(out, a)
+	}
+	return out, nil
+}
+
+func decodeFlags(node yaml.Node) ([]RawFlag, *Diagnostic) {
+	if node.Kind == 0 {
+		return nil, nil
+	}
+	if node.Kind != yaml.SequenceNode {
+		return nil, &Diagnostic{Reason: "flags must be a list"}
+	}
+	out := make([]RawFlag, 0, len(node.Content))
+	for _, item := range node.Content {
+		if item.Kind != yaml.MappingNode {
+			return nil, &Diagnostic{Reason: "each flags entry must be a mapping"}
+		}
+		var f RawFlag
+		if err := item.Decode(&f); err != nil {
+			return nil, &Diagnostic{Reason: "malformed flags entry: " + err.Error()}
+		}
+		if f.Name == "" {
+			return nil, &Diagnostic{Reason: "each flags entry needs a name"}
+		}
+		out = append(out, f)
+	}
+	return out, nil
+}
