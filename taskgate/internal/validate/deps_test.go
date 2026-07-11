@@ -76,6 +76,25 @@ func TestDetectDeps_Malformed(t *testing.T) {
 	}
 }
 
+func TestDetectDeps_NotExecutable(t *testing.T) {
+	dir := t.TempDir()
+	dep := discoveredTask(t, dir, "shared", "build", "#!/bin/sh\n# ---\n# ---\n")
+	if err := os.Chmod(dep.absPath, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	pf := map[string][]discovered{
+		"human":  {discoveredTask(t, dir, "human", "deploy", "#!/bin/sh\n# ---\n# before:\n#   - build\n# ---\n")},
+		"shared": {dep},
+	}
+	fs, err := detectDeps(show.AudienceHuman, pf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if depRuleCounts(fs)[RuleDepNotExec] != 1 {
+		t.Fatalf("want 1 dep-not-exec, got %v", fs)
+	}
+}
+
 func TestDetectDeps_Clean(t *testing.T) {
 	dir := t.TempDir()
 	pf := map[string][]discovered{

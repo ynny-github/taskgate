@@ -90,6 +90,21 @@ func TestExecute_BodyFailSkipsOwnAfter(t *testing.T) {
 	}
 }
 
+func TestExecute_AfterFailureSetsExitCode(t *testing.T) {
+	deploy := n("deploy")
+	deploy.After = []*Node{n("notify")}
+	var log []string
+	code := Execute(&Graph{Root: deploy}, nil, recorder(&log, map[string]int{"notify": 4}))
+	if code != 4 {
+		t.Fatalf("exit = %d, want 4 (after-dep failure must set exit code)", code)
+	}
+	// deploy body ran (success) and notify ran (and failed)
+	joined := strings.Join(log, ",")
+	if !strings.Contains(joined, "deploy") || !strings.Contains(joined, "notify") {
+		t.Fatalf("both deploy and notify should have run; log=%v", log)
+	}
+}
+
 func TestExecute_RootReceivesArgs(t *testing.T) {
 	root := n("deploy")
 	root.Before = []*Node{n("build")}
