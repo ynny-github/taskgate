@@ -45,7 +45,7 @@ func (s *Spec) Help(invocation, summary, body string) string {
 			} else if !a.Required {
 				label = "[" + a.Name + "]"
 			}
-			fmt.Fprintf(&b, "  %-14s %s%s\n", label, a.Help, annotate(a.Choices, a.Default))
+			writeRow(&b, label, a.Help, annotate(a.Choices, a.Default))
 		}
 	}
 
@@ -55,9 +55,9 @@ func (s *Spec) Help(invocation, summary, body string) string {
 		if f.Short != "" {
 			head = f.Short + ", " + f.Name
 		}
-		fmt.Fprintf(&b, "  %-14s %s%s\n", head, f.Help, annotate(f.Choices, f.Default))
+		writeRow(&b, head, f.Help, annotate(f.Choices, f.Default))
 	}
-	fmt.Fprintf(&b, "  %-14s %s\n", "-h, --help", "Show this help")
+	writeRow(&b, "-h, --help", "Show this help", "")
 
 	if body != "" {
 		b.WriteString("\n")
@@ -65,6 +65,12 @@ func (s *Spec) Help(invocation, summary, body string) string {
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+func writeRow(b *strings.Builder, label, help, annot string) {
+	row := fmt.Sprintf("  %-14s %s%s", label, help, annot)
+	b.WriteString(strings.TrimRight(row, " "))
+	b.WriteByte('\n')
 }
 
 func annotate(choices []string, def *string) string {

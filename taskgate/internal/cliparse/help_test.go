@@ -46,3 +46,16 @@ func TestHelp_ContainsSections(t *testing.T) {
 		}
 	}
 }
+
+func TestHelp_NoTrailingWhitespace(t *testing.T) {
+	spec := compile(t, annotation.RawSpec{
+		Args:  []annotation.RawArg{{Name: "env"}},
+		Flags: []annotation.RawFlag{{Name: "--tag"}},
+	})
+	out := spec.Help("taskgate run deploy", "", "")
+	for _, line := range strings.Split(out, "\n") {
+		if line != strings.TrimRight(line, " ") {
+			t.Errorf("line has trailing whitespace: %q", line)
+		}
+	}
+}
