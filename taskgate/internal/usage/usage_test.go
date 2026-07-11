@@ -13,6 +13,8 @@ func TestGuide_ContainsKeyGuidance(t *testing.T) {
 		"taskgate ai validate",
 		"summary",
 		"body",
+		"before",
+		"after",
 		"snapshot install",
 	} {
 		if !strings.Contains(g, want) {
