@@ -154,3 +154,21 @@ func (w *Workspace) ReadFile(relpath string) string {
 	}
 	return string(b)
 }
+
+// RunEnv is Run with extra environment variables appended to the child env.
+func (w *Workspace) RunEnv(extraEnv []string, args ...string) Result {
+	cmd := exec.Command(w.binary, args...)
+	cmd.Dir = w.Root
+	cmd.Env = append(os.Environ(), extraEnv...)
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	code := 0
+	if exitErr, ok := err.(*exec.ExitError); ok {
+		code = exitErr.ExitCode()
+	} else if err != nil {
+		code = -1
+	}
+	return Result{Stdout: stdout.String(), Stderr: stderr.String(), ExitCode: code}
+}
