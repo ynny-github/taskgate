@@ -49,3 +49,23 @@ The task named on the command line. It is the only task that receives the user-s
 ## Dependency graph
 
 The directed graph reachable from the root target via `before` and `after` edges.
+
+## Arg spec
+
+The `args`/`flags` declaration in a task's annotation front-matter describing its CLI interface. Present-but-malformed is an error; cleanly absent means the task's argv is forwarded unchanged.
+
+## Positional argument (arg)
+
+An ordered, name-bearing operand declared under a task's `args` key. The last declared arg may be **variadic**, absorbing zero-or-more trailing operands; at most one arg may be variadic.
+
+## Flag
+
+A `--name` option declared under a task's `flags` key, either **bool** (presence sets it to `true`) or **value-taking** (`--tag latest`). May carry a single-character `short` alias.
+
+## Choices
+
+An allowed-value set declared on an arg or a value-taking flag. A value outside the declared set is a usage error.
+
+## Injected variable
+
+A `taskgate_<name>` environment variable carrying a parsed, validated value from an arg spec into the task body. `<name>` is derived from the arg/flag `name` (leading dashes stripped, lowercased, non-alphanumeric runs collapsed to `_`).
