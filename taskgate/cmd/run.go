@@ -2,6 +2,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/ynny-github/taskgate/taskgate/internal/taskgraph"
 )
 
 func newRunCmd() *cobra.Command {
@@ -30,20 +32,66 @@ func runTask(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("cannot determine working directory: %w", err)
 	}
-
 	root := detectProjectRoot(cwd)
-	taskPath, err := resolveHumanTask(root, taskName)
+
+	res := humanResolver{root: root}
+	g, err := taskgraph.Build(taskName, res)
 	if err != nil {
 		return err
 	}
 
-	c := exec.Command(taskPath, scriptArgs...)
-	c.Stdout = cmd.OutOrStdout()
-	c.Stderr = cmd.ErrOrStderr()
-	c.Stdin = os.Stdin
+	env := taskEnv(root)
+	runner := func(path string, a []string) (int, error) {
+		c := exec.Command(path, a...)
+		c.Stdout = cmd.OutOrStdout()
+		c.Stderr = cmd.ErrOrStderr()
+		c.Stdin = os.Stdin
+		c.Env = env
+		if err := c.Run(); err != nil {
+			var ee *exec.ExitError
+			if errors.As(err, &ee) {
+				return ee.ExitCode(), nil
+			}
+			return 0, err
+		}
+		return 0, nil
+	}
+	if code := taskgraph.Execute(g, scriptArgs, runner); code != 0 {
+		return &exitError{code: code}
+	}
+	return nil
+}
 
-	// Always manage TASKGATE_PROJECT_ROOT: set it if a project root is found,
-	// otherwise ensure it's not passed to the child process.
+// humanResolver resolves dependency names across .taskgate/human then
+// .taskgate/shared, classifying failures for taskgraph.
+type humanResolver struct{ root string }
+
+func (r humanResolver) Resolve(name string) (string, error) {
+	if r.root == "" {
+		return "", &taskgraph.ResolveError{Name: name, Kind: taskgraph.ResolveUnknown,
+			Detail: "not found in .taskgate/human/ or .taskgate/shared/"}
+	}
+	for _, subdir := range []string{"human", "shared"} {
+		path := filepath.Join(r.root, ".taskgate", subdir, name)
+		info, err := os.Stat(path)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return "", err
+		}
+		if info.Mode()&0o111 == 0 {
+			return "", &taskgraph.ResolveError{Name: name, Kind: taskgraph.ResolveNotExecutable,
+				Detail: "is not executable"}
+		}
+		return path, nil
+	}
+	return "", &taskgraph.ResolveError{Name: name, Kind: taskgraph.ResolveUnknown,
+		Detail: "not found in .taskgate/human/ or .taskgate/shared/"}
+}
+
+// taskEnv returns the child environment with TASKGATE_PROJECT_ROOT managed.
+func taskEnv(root string) []string {
 	env := make([]string, 0, len(os.Environ())+1)
 	for _, e := range os.Environ() {
 		if !strings.HasPrefix(e, "TASKGATE_PROJECT_ROOT=") {
@@ -53,10 +101,14 @@ func runTask(cmd *cobra.Command, args []string) error {
 	if root != "" {
 		env = append(env, "TASKGATE_PROJECT_ROOT="+root)
 	}
-	c.Env = env
-
-	return c.Run()
+	return env
 }
+
+// exitError carries a child task's exit code up to Run without printing an
+// extra diagnostic line (the child already wrote its own output).
+type exitError struct{ code int }
+
+func (e *exitError) Error() string { return fmt.Sprintf("task exited with code %d", e.code) }
 
 func detectProjectRoot(cwd string) string {
 	dir, err := filepath.Abs(cwd)

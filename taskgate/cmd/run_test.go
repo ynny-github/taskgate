@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -121,12 +120,12 @@ func TestRunCmd_PropagatesExitCode(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected non-nil error for exit code 42")
 	}
-	var exitErr *exec.ExitError
+	var exitErr *exitError
 	if !errors.As(err, &exitErr) {
-		t.Fatalf("expected *exec.ExitError, got %T: %v", err, err)
+		t.Fatalf("expected *exitError, got %T: %v", err, err)
 	}
-	if exitErr.ExitCode() != 42 {
-		t.Errorf("exit code = %d, want 42", exitErr.ExitCode())
+	if exitErr.code != 42 {
+		t.Errorf("exit code = %d, want 42", exitErr.code)
 	}
 }
 
@@ -216,7 +215,7 @@ func TestRunCmd_NoMarker_TaskNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when no .taskgate marker exists, got nil")
 	}
-	want := `task "ghost" not found in .taskgate/human/ or .taskgate/shared/`
+	want := `dependency "ghost": not found in .taskgate/human/ or .taskgate/shared/`
 	if err.Error() != want {
 		t.Errorf("got %q, want %q", err.Error(), want)
 	}
@@ -303,5 +302,64 @@ func TestDetectProjectRoot_IgnoresMarkerFile(t *testing.T) {
 	got := detectProjectRoot(tmp)
 	if got != "" {
 		t.Errorf("detectProjectRoot(%q) = %q, want empty (.taskgate is a file)", tmp, got)
+	}
+}
+
+func TestRun_ExecutesBeforeDependency(t *testing.T) {
+	tmp := t.TempDir()
+	order := filepath.Join(tmp, "order.txt")
+	makeHumanScript(t, tmp, "build", "#!/bin/sh\necho build >> "+order+"\n")
+	makeHumanScript(t, tmp, "deploy",
+		"#!/bin/sh\n# ---\n# before:\n#   - build\n# ---\necho deploy >> "+order+"\n")
+
+	var stdout, stderr bytes.Buffer
+	cwd, _ := os.Getwd()
+	defer os.Chdir(cwd)
+	os.Chdir(tmp)
+	code := Run([]string{"run", "deploy"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit = %d, stderr = %s", code, stderr.String())
+	}
+	got, _ := os.ReadFile(order)
+	if strings.TrimSpace(string(got)) != "build\ndeploy" {
+		t.Fatalf("order = %q, want build\\ndeploy", got)
+	}
+}
+
+func TestRun_BeforeFailureAborts(t *testing.T) {
+	tmp := t.TempDir()
+	order := filepath.Join(tmp, "order.txt")
+	makeHumanScript(t, tmp, "build", "#!/bin/sh\necho build >> "+order+"\nexit 7\n")
+	makeHumanScript(t, tmp, "deploy",
+		"#!/bin/sh\n# ---\n# before:\n#   - build\n# ---\necho deploy >> "+order+"\n")
+
+	var stdout, stderr bytes.Buffer
+	cwd, _ := os.Getwd()
+	defer os.Chdir(cwd)
+	os.Chdir(tmp)
+	code := Run([]string{"run", "deploy"}, &stdout, &stderr)
+	if code != 7 {
+		t.Fatalf("exit = %d, want 7", code)
+	}
+	got, _ := os.ReadFile(order)
+	if strings.TrimSpace(string(got)) != "build" {
+		t.Fatalf("order = %q, want build only", got)
+	}
+}
+
+func TestRun_UnknownDependencyErrors(t *testing.T) {
+	tmp := t.TempDir()
+	makeHumanScript(t, tmp, "deploy",
+		"#!/bin/sh\n# ---\n# before:\n#   - ghost\n# ---\necho deploy\n")
+	var stdout, stderr bytes.Buffer
+	cwd, _ := os.Getwd()
+	defer os.Chdir(cwd)
+	os.Chdir(tmp)
+	code := Run([]string{"run", "deploy"}, &stdout, &stderr)
+	if code == 0 {
+		t.Fatal("expected non-zero exit for unknown dependency")
+	}
+	if !strings.Contains(stderr.String(), "ghost") {
+		t.Fatalf("stderr %q should mention the unknown dep", stderr.String())
 	}
 }
