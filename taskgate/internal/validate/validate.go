@@ -63,6 +63,12 @@ func Run(audience show.Audience, args []string, stdout, stderr io.Writer) (int, 
 	}
 	findings = append(findings, detectCollisions(perSlots)...)
 
+	depFindings, err := detectDeps(audience, perFiles)
+	if err != nil {
+		return show.ExitGeneric, err
+	}
+	findings = append(findings, depFindings...)
+
 	if name != "" {
 		if !nameExists(name, perFiles, perSlots) {
 			return renderNotFound(audience, show.NotFoundReport{
