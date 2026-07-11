@@ -32,6 +32,15 @@ func RenderHumanTask(w io.Writer, e Entry) error {
 			return err
 		}
 	}
+	if spec := compiledSpec(e.Path); spec != nil {
+		if _, err := fmt.Fprintln(w); err != nil {
+			return err
+		}
+		invocation := "taskgate run " + runName(e.Path)
+		if _, err := fmt.Fprintln(w, spec.UsageLine(invocation)); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
