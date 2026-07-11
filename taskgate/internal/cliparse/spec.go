@@ -103,7 +103,62 @@ func Compile(raw annotation.RawSpec) (*Spec, []string) {
 		claim(flag.Var, f.Name)
 		spec.Flags = append(spec.Flags, flag)
 	}
+
+	probs = append(probs, checkVariadicCollisions(spec)...)
 	return spec, probs
+}
+
+// checkVariadicCollisions returns a problem for every declared arg or flag
+// (other than the variadic itself) whose derived var collides with a
+// variadic argument's synthesized runtime keys: taskgate_<var>_count and
+// taskgate_<var>_1, taskgate_<var>_2, ... (see parse.go's variadic
+// expansion). These synthesized keys are never registered via claim(), so
+// without this pass a colliding declaration would compile cleanly and then
+// silently clobber the variadic's runtime env vars.
+func checkVariadicCollisions(spec *Spec) []string {
+	var probs []string
+	for vi, va := range spec.Args {
+		if !va.Variadic {
+			continue
+		}
+		for ai, a := range spec.Args {
+			if ai == vi {
+				continue
+			}
+			if isSynthesizedVar(va.Var, a.Var) {
+				probs = append(probs, fmt.Sprintf("%q collides with variadic argument %q's synthesized env variable taskgate_%s", a.Name, va.Name, a.Var))
+			}
+		}
+		for _, f := range spec.Flags {
+			if isSynthesizedVar(va.Var, f.Var) {
+				probs = append(probs, fmt.Sprintf("%q collides with variadic argument %q's synthesized env variable taskgate_%s", f.Name, va.Name, f.Var))
+			}
+		}
+	}
+	return probs
+}
+
+// isSynthesizedVar reports whether w is one of the runtime keys a variadic
+// argument's var v synthesizes: v+"_count", or v followed by "_" and one or
+// more digits (v+"_1", v+"_2", ...).
+func isSynthesizedVar(v, w string) bool {
+	if w == v+"_count" {
+		return true
+	}
+	prefix := v + "_"
+	if !strings.HasPrefix(w, prefix) {
+		return false
+	}
+	rest := w[len(prefix):]
+	if rest == "" {
+		return false
+	}
+	for _, r := range rest {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // deriveVar strips leading dashes, lowercases, and collapses each run of

@@ -66,6 +66,17 @@ func TestCompile_Problems(t *testing.T) {
 		{"varCollision",
 			annotation.RawSpec{Args: []annotation.RawArg{{Name: "dry-run"}}, Flags: []annotation.RawFlag{{Name: "--dry-run", Type: "bool"}}},
 			"both map to environment variable taskgate_dry_run"},
+		{"variadicFlagCountCollision",
+			annotation.RawSpec{
+				Args:  []annotation.RawArg{{Name: "files", Variadic: true}},
+				Flags: []annotation.RawFlag{{Name: "--files-count"}},
+			},
+			"collides with variadic argument \"files\"'s synthesized env variable taskgate_files_count"},
+		{"variadicPositionalIndexCollision",
+			annotation.RawSpec{
+				Args: []annotation.RawArg{{Name: "files_1"}, {Name: "files", Variadic: true}},
+			},
+			"collides with variadic argument \"files\"'s synthesized env variable taskgate_files_1"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -75,5 +86,16 @@ func TestCompile_Problems(t *testing.T) {
 				t.Fatalf("want %q in problems, got %q", tc.want, joined)
 			}
 		})
+	}
+}
+
+func TestCompile_VariadicCollision_NoFalsePositives(t *testing.T) {
+	raw := annotation.RawSpec{
+		Args:  []annotation.RawArg{{Name: "files", Variadic: true}},
+		Flags: []annotation.RawFlag{{Name: "--filesx"}, {Name: "--tag"}},
+	}
+	_, probs := Compile(raw)
+	if len(probs) != 0 {
+		t.Fatalf("expected no problems, got %v", probs)
 	}
 }

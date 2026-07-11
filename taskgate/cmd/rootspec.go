@@ -22,11 +22,11 @@ func applyRootSpec(rootPath, invocation string, scriptArgs []string, stdout, std
 		return nil, nil, false, err
 	}
 	if diag != nil {
-		return nil, nil, false, fmt.Errorf("%s: %s", invocation, diag.Reason)
+		return nil, nil, false, fmt.Errorf("invalid CLI spec: %s", diag.Reason)
 	}
 	spec, probs := cliparse.Compile(raw)
 	if len(probs) > 0 {
-		return nil, nil, false, fmt.Errorf("%s: %s", invocation, probs[0])
+		return nil, nil, false, fmt.Errorf("invalid CLI spec: %s", probs[0])
 	}
 	if spec == nil { // no spec declared → raw passthrough
 		return nil, scriptArgs, false, nil
