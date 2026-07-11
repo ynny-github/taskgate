@@ -8,6 +8,7 @@ package annotation
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 
@@ -56,46 +57,113 @@ func ParseStrict(r io.Reader) (AnnotationBlock, *Diagnostic, error) {
 	return parseCore(r)
 }
 
-// parseCore performs the scan + decode once. It returns the decoded block
-// (populated whenever the envelope's YAML decodes) plus an optional
-// Diagnostic describing why a present envelope is invalid.
-func parseCore(r io.Reader) (AnnotationBlock, *Diagnostic, error) {
+// scanEnvelope reads r, locates the front-matter envelope (skipping a leading
+// shebang), and returns the inner YAML bytes with comment prefixes stripped.
+// A nil error with envelopeFound=false means no envelope was present. A
+// non-nil *Diagnostic reports an unterminated envelope.
+func scanEnvelope(r io.Reader) (yamlBytes []byte, envelopeFound bool, diag *Diagnostic, err error) {
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
-
 	lines := make([]string, 0, 32)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
-		return AnnotationBlock{}, nil, err
+		return nil, false, nil, err
 	}
 
 	start := 0
 	if start < len(lines) && strings.HasPrefix(lines[start], "#!") {
 		start++
 	}
-
 	openIdx, prefix := findOpener(lines, start)
 	if openIdx < 0 {
-		return AnnotationBlock{}, nil, nil
+		return nil, false, nil, nil
 	}
 	closeIdx := findCloser(lines, openIdx+1, prefix)
 	if closeIdx < 0 {
-		return AnnotationBlock{}, &Diagnostic{Reason: "unterminated annotation envelope"}, nil
+		return nil, true, &Diagnostic{Reason: "unterminated annotation envelope"}, nil
 	}
-
 	var buf bytes.Buffer
 	for _, line := range lines[openIdx+1 : closeIdx] {
 		buf.WriteString(stripPrefix(line, prefix))
 		buf.WriteByte('\n')
 	}
+	return buf.Bytes(), true, nil, nil
+}
 
+// Deps is the before/after dependency lists extracted from a task's
+// annotation envelope. A zero value means "no dependencies declared".
+type Deps struct {
+	Before []string
+	After  []string
+}
+
+// ParseDeps extracts the before/after lists. Unlike summary/body, a present
+// but malformed list (scalar, mapping, or non-string element) yields a
+// *Diagnostic so run/validate can refuse rather than silently drop a
+// prerequisite. Absent keys and an absent envelope yield an empty Deps.
+func ParseDeps(r io.Reader) (Deps, *Diagnostic, error) {
+	yamlBytes, found, diag, err := scanEnvelope(r)
+	if err != nil {
+		return Deps{}, nil, err
+	}
+	if !found || diag != nil {
+		return Deps{}, diag, nil
+	}
+	var raw struct {
+		Before yaml.Node `yaml:"before"`
+		After  yaml.Node `yaml:"after"`
+	}
+	if err := yaml.Unmarshal(yamlBytes, &raw); err != nil {
+		return Deps{}, &Diagnostic{Reason: "malformed YAML in annotation: " + err.Error()}, nil
+	}
+	before, d := decodeNameList("before", raw.Before)
+	if d != nil {
+		return Deps{}, d, nil
+	}
+	after, d := decodeNameList("after", raw.After)
+	if d != nil {
+		return Deps{}, d, nil
+	}
+	return Deps{Before: before, After: after}, nil, nil
+}
+
+// decodeNameList converts a YAML node into a []string of task names. A zero
+// (absent) node yields nil. Anything that is not a sequence of scalars yields
+// a *Diagnostic naming the offending key.
+func decodeNameList(key string, node yaml.Node) ([]string, *Diagnostic) {
+	if node.Kind == 0 {
+		return nil, nil // absent
+	}
+	if node.Kind != yaml.SequenceNode {
+		return nil, &Diagnostic{Reason: fmt.Sprintf("%s must be a list of task names", key)}
+	}
+	out := make([]string, 0, len(node.Content))
+	for _, item := range node.Content {
+		if item.Kind != yaml.ScalarNode || item.Value == "" || item.Tag != "!!str" {
+			return nil, &Diagnostic{Reason: fmt.Sprintf("%s must be a list of task names", key)}
+		}
+		out = append(out, item.Value)
+	}
+	return out, nil
+}
+
+// parseCore performs the scan + decode once. It returns the decoded block
+// (populated whenever the envelope's YAML decodes) plus an optional
+// Diagnostic describing why a present envelope is invalid.
+func parseCore(r io.Reader) (AnnotationBlock, *Diagnostic, error) {
+	yamlBytes, found, diag, err := scanEnvelope(r)
+	if err != nil {
+		return AnnotationBlock{}, nil, err
+	}
+	if !found || diag != nil {
+		return AnnotationBlock{}, diag, nil
+	}
 	var doc annotationDoc
-	if err := yaml.Unmarshal(buf.Bytes(), &doc); err != nil {
+	if err := yaml.Unmarshal(yamlBytes, &doc); err != nil {
 		return AnnotationBlock{}, &Diagnostic{Reason: "malformed YAML in annotation: " + err.Error()}, nil
 	}
-
 	block := AnnotationBlock{
 		Summary: strings.TrimRight(doc.Summary, " \t\r\n"),
 		Body:    strings.TrimRight(doc.Body, " \t\r\n"),

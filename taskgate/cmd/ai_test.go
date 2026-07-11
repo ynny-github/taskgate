@@ -9,6 +9,18 @@ import (
 	"testing"
 )
 
+// writeExec creates an executable file at path with the given content,
+// creating parent directories as needed.
+func writeExec(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestResolveAITask_NotFound(t *testing.T) {
 	dir := t.TempDir()
 	_, err := resolveAITask(dir, "build")
@@ -109,16 +121,14 @@ func TestAIRunCmd_ErrorWhenSnapshotStale(t *testing.T) {
 	snapshotDirOverride = func(string) (string, error) { return snapDir, nil }
 	t.Cleanup(func() { snapshotDirOverride = nil })
 
-	var errBuf bytes.Buffer
 	root := newRootCmd()
 	root.SetArgs([]string{"ai", "run", "build"})
-	root.SetErr(&errBuf)
 	err = root.Execute()
 	if err == nil {
 		t.Fatal("expected error for stale snapshot, got nil")
 	}
-	if !strings.Contains(errBuf.String(), "taskgate snapshot install") {
-		t.Errorf("expected stderr to mention 'taskgate snapshot install', got: %q", errBuf.String())
+	if !strings.Contains(err.Error(), "taskgate snapshot install") {
+		t.Errorf("expected error to mention 'taskgate snapshot install', got: %q", err.Error())
 	}
 }
 
@@ -301,5 +311,67 @@ func makeTask(t *testing.T, tmp, subdir, name string) {
 	}
 	if err := os.WriteFile(filepath.Join(dir, name), []byte("#!/bin/sh\necho hi"), 0755); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestAIRun_ExecutesBeforeDependency(t *testing.T) {
+	tmp := t.TempDir()
+	snap := filepath.Join(tmp, "snap")
+	order := filepath.Join(tmp, "order.txt")
+	if err := os.MkdirAll(snap, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// snapshot copies (what ai run executes)
+	writeExec(t, filepath.Join(snap, "build"), "#!/bin/sh\necho build >> "+order+"\n")
+	writeExec(t, filepath.Join(snap, "deploy"),
+		"#!/bin/sh\n# ---\n# before:\n#   - build\n# ---\necho deploy >> "+order+"\n")
+	// matching sources under .taskgate so freshness passes
+	writeExec(t, filepath.Join(tmp, ".taskgate", "ai", "build"), "#!/bin/sh\necho build >> "+order+"\n")
+	writeExec(t, filepath.Join(tmp, ".taskgate", "ai", "deploy"),
+		"#!/bin/sh\n# ---\n# before:\n#   - build\n# ---\necho deploy >> "+order+"\n")
+
+	snapshotDirOverride = func(string) (string, error) { return snap, nil }
+	defer func() { snapshotDirOverride = nil }()
+
+	var stdout, stderr bytes.Buffer
+	cwd, _ := os.Getwd()
+	defer os.Chdir(cwd)
+	os.Chdir(tmp)
+	code := Run([]string{"ai", "run", "deploy"}, &stdout, &stderr)
+	if code != 0 {
+		t.Fatalf("exit = %d, stderr = %s", code, stderr.String())
+	}
+	got, _ := os.ReadFile(order)
+	if strings.TrimSpace(string(got)) != "build\ndeploy" {
+		t.Fatalf("order = %q, want build\\ndeploy", got)
+	}
+}
+
+func TestAIRun_StaleDependencyErrors(t *testing.T) {
+	tmp := t.TempDir()
+	snap := filepath.Join(tmp, "snap")
+	if err := os.MkdirAll(snap, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeExec(t, filepath.Join(snap, "build"), "#!/bin/sh\necho OLD\n")
+	writeExec(t, filepath.Join(snap, "deploy"),
+		"#!/bin/sh\n# ---\n# before:\n#   - build\n# ---\necho deploy\n")
+	writeExec(t, filepath.Join(tmp, ".taskgate", "ai", "build"), "#!/bin/sh\necho NEW\n") // differs → stale
+	writeExec(t, filepath.Join(tmp, ".taskgate", "ai", "deploy"),
+		"#!/bin/sh\n# ---\n# before:\n#   - build\n# ---\necho deploy\n")
+
+	snapshotDirOverride = func(string) (string, error) { return snap, nil }
+	defer func() { snapshotDirOverride = nil }()
+
+	var stdout, stderr bytes.Buffer
+	cwd, _ := os.Getwd()
+	defer os.Chdir(cwd)
+	os.Chdir(tmp)
+	code := Run([]string{"ai", "run", "deploy"}, &stdout, &stderr)
+	if code == 0 {
+		t.Fatal("expected non-zero exit for stale dependency")
+	}
+	if !strings.Contains(stderr.String(), "out of date") {
+		t.Fatalf("stderr %q should report the stale snapshot", stderr.String())
 	}
 }

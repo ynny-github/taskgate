@@ -25,6 +25,10 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		if errors.As(err, &execErr) {
 			return execErr.ExitCode()
 		}
+		var codeErr *exitError
+		if errors.As(err, &codeErr) {
+			return codeErr.code
+		}
 		var showErr *show.ExitError
 		if errors.As(err, &showErr) {
 			return showErr.Code
