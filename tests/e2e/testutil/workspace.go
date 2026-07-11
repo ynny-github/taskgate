@@ -122,3 +122,35 @@ func (w *Workspace) Run(args ...string) Result {
 	}
 	return Result{Stdout: stdout.String(), Stderr: stderr.String(), ExitCode: code}
 }
+
+// WriteDependentTask writes an executable sh task that appends its own name to
+// <Root>/order.txt, with the given before/after dependency lists in its
+// annotation. Pass nil for no dependencies of that kind.
+func (w *Workspace) WriteDependentTask(relpath, name string, before, after []string) {
+	lines := []string{"#!/bin/sh", "# ---"}
+	appendList := func(key string, names []string) {
+		if len(names) == 0 {
+			return
+		}
+		lines = append(lines, "# "+key+":")
+		for _, n := range names {
+			lines = append(lines, "#   - "+n)
+		}
+	}
+	appendList("before", before)
+	appendList("after", after)
+	lines = append(lines, "# ---", `echo `+name+` >> "$0.dir/order.txt"`, "")
+	// Resolve order.txt relative to the workspace root via an absolute path.
+	body := strings.Join(lines, "\n")
+	body = strings.ReplaceAll(body, `"$0.dir/order.txt"`, `"`+filepath.Join(w.Root, "order.txt")+`"`)
+	w.WriteFile(relpath, body, true)
+}
+
+// ReadFile returns the content of a workspace-relative path (empty if absent).
+func (w *Workspace) ReadFile(relpath string) string {
+	b, err := os.ReadFile(filepath.Join(w.Root, relpath))
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
