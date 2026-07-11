@@ -56,3 +56,17 @@ func TestParseDeps_NoEnvelopeIsEmpty(t *testing.T) {
 		t.Errorf("expected empty deps, got %+v", deps)
 	}
 }
+
+func TestParseDeps_NonStringElement(t *testing.T) {
+	src := "#!/bin/sh\n# ---\n# before:\n#   - 123\n# ---\necho hi\n"
+	_, diag, err := ParseDeps(strings.NewReader(src))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if diag == nil {
+		t.Fatal("expected a diagnostic for a non-string element, got nil")
+	}
+	if !strings.Contains(diag.Reason, "before") {
+		t.Errorf("diagnostic %q should mention before", diag.Reason)
+	}
+}

@@ -141,7 +141,7 @@ func decodeNameList(key string, node yaml.Node) ([]string, *Diagnostic) {
 	}
 	out := make([]string, 0, len(node.Content))
 	for _, item := range node.Content {
-		if item.Kind != yaml.ScalarNode || item.Value == "" {
+		if item.Kind != yaml.ScalarNode || item.Value == "" || item.Tag != "!!str" {
 			return nil, &Diagnostic{Reason: fmt.Sprintf("%s must be a list of task names", key)}
 		}
 		out = append(out, item.Value)
