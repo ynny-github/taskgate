@@ -110,3 +110,50 @@ func TestParse_VariadicZero(t *testing.T) {
 		t.Fatalf("count=%q want 0", res.Env["taskgate_files_count"])
 	}
 }
+
+func TestParse_HelpFlagDeclaredOverride(t *testing.T) {
+	spec := compile(t, annotation.RawSpec{Flags: []annotation.RawFlag{{Name: "--help", Type: "bool"}}})
+	res, uerr := spec.Parse([]string{"--help"})
+	if uerr != nil {
+		t.Fatalf("unexpected usage error: %v", uerr)
+	}
+	if res.Help {
+		t.Fatalf("declared --help should bind to the flag, not request help")
+	}
+	if res.Env["taskgate_help"] != "true" {
+		t.Fatalf("taskgate_help=%q want true", res.Env["taskgate_help"])
+	}
+	// An undeclared -h still triggers help.
+	res2, _ := spec.Parse([]string{"-h"})
+	if !res2.Help {
+		t.Fatalf("undeclared -h should still request help")
+	}
+}
+
+func TestParse_VariadicChoiceViolation(t *testing.T) {
+	spec := compile(t, annotation.RawSpec{Args: []annotation.RawArg{
+		{Name: "envs", Choices: []string{"staging", "prod"}, Variadic: true},
+	}})
+	_, uerr := spec.Parse([]string{"staging", "dev"})
+	if uerr == nil {
+		t.Fatalf("expected a usage error for out-of-choices variadic element")
+	}
+	// Confirm the reason names the argument and the allowed choices.
+	if uerr.Reason != "argument <envs>: must be one of staging, prod" {
+		t.Fatalf("unexpected reason: %q", uerr.Reason)
+	}
+}
+
+func TestParse_FlagInterleavedBetweenPositionals(t *testing.T) {
+	spec := compile(t, annotation.RawSpec{
+		Args:  []annotation.RawArg{{Name: "a"}, {Name: "b"}},
+		Flags: []annotation.RawFlag{{Name: "--tag"}},
+	})
+	res, uerr := spec.Parse([]string{"first", "--tag", "v1", "second"})
+	if uerr != nil {
+		t.Fatalf("unexpected usage error: %v", uerr)
+	}
+	if res.Env["taskgate_a"] != "first" || res.Env["taskgate_b"] != "second" || res.Env["taskgate_tag"] != "v1" {
+		t.Fatalf("bad binding: %v", res.Env)
+	}
+}
