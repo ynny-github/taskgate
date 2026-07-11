@@ -5,14 +5,16 @@ package validate
 
 // Rule names — a shared contract between the engine and both renderers.
 const (
-	RuleExecBit      = "exec-bit"
-	RuleShebang      = "shebang"
-	RuleAnnotation   = "annotation"
-	RuleCollision    = "collision"
-	RuleDepUnknown   = "dep-unknown"
-	RuleDepNotExec   = "dep-not-exec"
-	RuleDepMalformed = "dep-malformed"
-	RuleDepCycle     = "dep-cycle"
+	RuleExecBit       = "exec-bit"
+	RuleShebang       = "shebang"
+	RuleAnnotation    = "annotation"
+	RuleCollision     = "collision"
+	RuleDepUnknown    = "dep-unknown"
+	RuleDepNotExec    = "dep-not-exec"
+	RuleDepMalformed  = "dep-malformed"
+	RuleDepCycle      = "dep-cycle"
+	RuleSpecMalformed = "spec-malformed"
+	RuleSpecInvalid   = "spec-invalid"
 )
 
 // Finding is one authoring problem. File-level findings carry Path + Message;

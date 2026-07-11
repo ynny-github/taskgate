@@ -88,3 +88,59 @@ func TestAIValidateCmd_EmitsEnvelope(t *testing.T) {
 		t.Errorf("expected validation envelope, got %q", stdout.String())
 	}
 }
+
+func TestAIValidateCmd_InvalidSpecFindingNonZeroExit(t *testing.T) {
+	root := chdirTemp(t)
+	shared := filepath.Join(root, ".taskgate", "shared")
+	if err := os.MkdirAll(shared, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// flag name missing "--" -> spec-invalid finding.
+	body := "#!/bin/sh\n# ---\n# flags:\n#   - name: tag\n# ---\n"
+	if err := os.WriteFile(filepath.Join(shared, "build"), []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	rootCmd := newRootCmd()
+	var stdout bytes.Buffer
+	rootCmd.SetOut(&stdout)
+	rootCmd.SetArgs([]string{"ai", "validate"})
+	err := rootCmd.Execute()
+
+	var exitErr *show.ExitError
+	if !errors.As(err, &exitErr) {
+		t.Fatalf("expected *show.ExitError, got %v", err)
+	}
+	if exitErr.Code != show.ExitGeneric {
+		t.Errorf("code = %d, want %d", exitErr.Code, show.ExitGeneric)
+	}
+	if !bytes.Contains(stdout.Bytes(), []byte(`"rule":"spec-invalid"`)) {
+		t.Errorf("expected spec-invalid finding, got %q", stdout.String())
+	}
+	if !bytes.Contains(stdout.Bytes(), []byte(`"ok":false`)) {
+		t.Errorf("expected ok:false, got %q", stdout.String())
+	}
+}
+
+func TestAIValidateCmd_ValidSpecOK(t *testing.T) {
+	root := chdirTemp(t)
+	shared := filepath.Join(root, ".taskgate", "shared")
+	if err := os.MkdirAll(shared, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := "#!/bin/sh\n# ---\n# flags:\n#   - name: --tag\n#     default: latest\n# ---\n"
+	if err := os.WriteFile(filepath.Join(shared, "build"), []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	rootCmd := newRootCmd()
+	var stdout bytes.Buffer
+	rootCmd.SetOut(&stdout)
+	rootCmd.SetArgs([]string{"ai", "validate"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !bytes.Contains(stdout.Bytes(), []byte(`"ok":true`)) {
+		t.Errorf("expected ok:true, got %q", stdout.String())
+	}
+}
