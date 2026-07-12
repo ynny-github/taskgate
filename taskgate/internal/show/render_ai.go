@@ -1,9 +1,14 @@
 package show
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
+	"os"
 	"strings"
+
+	"github.com/ynny-github/taskgate/taskgate/internal/annotation"
+	"github.com/ynny-github/taskgate/taskgate/internal/cliparse"
 )
 
 // envelopes per contracts/ai-output.md.
@@ -22,12 +27,77 @@ type listingEnvelope struct {
 }
 
 type taskEnvelope struct {
-	Kind     string  `json:"kind"`
-	Name     string  `json:"name"`
-	Path     string  `json:"path"`
-	Summary  *string `json:"summary"`
-	Body     string  `json:"body,omitempty"`
-	Audience string  `json:"audience"`
+	Kind     string     `json:"kind"`
+	Name     string     `json:"name"`
+	Path     string     `json:"path"`
+	Summary  *string    `json:"summary"`
+	Body     string     `json:"body,omitempty"`
+	Audience string     `json:"audience"`
+	Args     []argJSON  `json:"args,omitempty"`
+	Flags    []flagJSON `json:"flags,omitempty"`
+}
+
+// argJSON is the wire representation of a compiled cliparse.Arg.
+type argJSON struct {
+	Name     string   `json:"name"`
+	Help     string   `json:"help,omitempty"`
+	Choices  []string `json:"choices,omitempty"`
+	Required bool     `json:"required,omitempty"`
+	Default  *string  `json:"default,omitempty"`
+	Variadic bool     `json:"variadic,omitempty"`
+}
+
+// flagJSON is the wire representation of a compiled cliparse.Flag.
+type flagJSON struct {
+	Name    string   `json:"name"`
+	Short   string   `json:"short,omitempty"`
+	Type    string   `json:"type"`
+	Help    string   `json:"help,omitempty"`
+	Choices []string `json:"choices,omitempty"`
+	Default *string  `json:"default,omitempty"`
+}
+
+// compiledSpec reads and compiles the task's CLI spec at path. It is
+// best-effort: any read error, annotation diagnostic, absent spec, or
+// compile problem yields nil. It never errors the caller.
+func compiledSpec(path string) *cliparse.Spec {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	raw, diag, err := annotation.ParseArgSpec(bytes.NewReader(data))
+	if err != nil || diag != nil {
+		return nil
+	}
+	spec, probs := cliparse.Compile(raw)
+	if spec == nil || len(probs) > 0 {
+		return nil
+	}
+	return spec
+}
+
+// specJSON reads and compiles the task's CLI spec at path, returning its
+// args/flags in wire format. It is best-effort: any read error, annotation
+// diagnostic, nil spec, or compile problem yields (nil, nil) so the caller
+// simply omits the args/flags fields. It never errors the show command.
+func specJSON(path string) (args []argJSON, flags []flagJSON) {
+	spec := compiledSpec(path)
+	if spec == nil {
+		return nil, nil
+	}
+	for _, a := range spec.Args {
+		args = append(args, argJSON{Name: a.Name, Help: a.Help, Choices: a.Choices,
+			Required: a.Required, Default: a.Default, Variadic: a.Variadic})
+	}
+	for _, f := range spec.Flags {
+		typ := "string"
+		if f.Bool {
+			typ = "bool"
+		}
+		flags = append(flags, flagJSON{Name: f.Name, Short: f.Short, Type: typ,
+			Help: f.Help, Choices: f.Choices, Default: f.Default})
+	}
+	return args, flags
 }
 
 type directoryEnvelope struct {

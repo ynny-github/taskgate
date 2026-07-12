@@ -123,6 +123,7 @@ func renderNotFound(audience Audience, rep NotFoundReport, stdout, stderr io.Wri
 func renderAITarget(w io.Writer, target ResolvedTarget) error {
 	switch target.Kind {
 	case EntryKindTask:
+		args, flags := specJSON(target.Entry.Path)
 		env := taskEnvelope{
 			Kind:     "task",
 			Name:     runName(target.Entry.Path),
@@ -130,6 +131,8 @@ func renderAITarget(w io.Writer, target ResolvedTarget) error {
 			Summary:  summaryPtr(target.Entry.Annotation.Summary),
 			Body:     target.Entry.Annotation.Body,
 			Audience: "ai",
+			Args:     args,
+			Flags:    flags,
 		}
 		return renderAI(w, env)
 	case EntryKindDirectory:

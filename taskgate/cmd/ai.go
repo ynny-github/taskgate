@@ -96,13 +96,26 @@ func runAITask(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	adds, forwarded, handled, err := applyRootSpec(g.Root.Path, "taskgate ai run "+taskName, scriptArgs, cmd.OutOrStdout(), cmd.ErrOrStderr())
+	if err != nil {
+		return err
+	}
+	if handled {
+		return nil
+	}
+
 	env := taskEnv(root)
+	rootEnv := append(append([]string{}, env...), adds...)
 	runner := func(path string, a []string) (int, error) {
+		e := env
+		if path == g.Root.Path {
+			e = rootEnv
+		}
 		c := exec.Command(path, a...)
 		c.Stdout = cmd.OutOrStdout()
 		c.Stderr = cmd.ErrOrStderr()
 		c.Stdin = os.Stdin
-		c.Env = env
+		c.Env = e
 		if err := c.Run(); err != nil {
 			var ee *exec.ExitError
 			if errors.As(err, &ee) {
@@ -112,7 +125,7 @@ func runAITask(cmd *cobra.Command, args []string) error {
 		}
 		return 0, nil
 	}
-	if code := taskgraph.Execute(g, scriptArgs, runner); code != 0 {
+	if code := taskgraph.Execute(g, forwarded, runner); code != 0 {
 		return &exitError{code: code}
 	}
 	return nil

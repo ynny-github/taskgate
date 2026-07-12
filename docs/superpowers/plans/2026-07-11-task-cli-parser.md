@@ -599,9 +599,6 @@ func TestParse_BoolFalseAndUnsetOptional(t *testing.T) {
 	if _, ok := res.Env["taskgate_opt"]; ok {
 		t.Errorf("optional-without-default should be unset, got %q", res.Env["taskgate_opt"])
 	}
-	if res.Env["taskgate_files_count"] != "" {
-		// no variadic declared; ensure no stray count
-	}
 }
 
 func TestParse_Errors(t *testing.T) {

@@ -3,6 +3,8 @@ package show
 import (
 	"bytes"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -363,6 +365,118 @@ func TestRenderHumanTask_PathOnly(t *testing.T) {
 	}
 	if strings.TrimSpace(buf.String()) != ".taskgate/shared/test" {
 		t.Errorf("got %q, want just the path", buf.String())
+	}
+}
+
+func TestSpecJSON(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "deploy")
+	body := "#!/bin/sh\n# ---\n# args:\n#   - name: env\n#     choices: [staging, prod]\n#     required: true\n# flags:\n#   - name: --dry-run\n#     type: bool\n# ---\n"
+	if err := os.WriteFile(p, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	args, flags := specJSON(p)
+	if len(args) != 1 || args[0].Name != "env" || !args[0].Required || len(args[0].Choices) != 2 {
+		t.Fatalf("bad args: %+v", args)
+	}
+	if len(flags) != 1 || flags[0].Name != "--dry-run" || flags[0].Type != "bool" {
+		t.Fatalf("bad flags: %+v", flags)
+	}
+}
+
+func TestRenderHumanTask_UsageLineForSpecBearingTask(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "deploy")
+	body := "#!/bin/sh\n# ---\n# summary: Deploy.\n# args:\n#   - name: env\n#     choices: [staging, prod]\n#     required: true\n# flags:\n#   - name: --tag\n#     type: string\n# ---\n"
+	if err := os.WriteFile(p, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	e := Entry{
+		Path: p,
+		Kind: EntryKindTask,
+		Annotation: annotation.AnnotationBlock{
+			Summary: "Deploy.",
+		},
+	}
+	var buf bytes.Buffer
+	if err := RenderHumanTask(&buf, e); err != nil {
+		t.Fatal(err)
+	}
+	got := buf.String()
+	name := runName(p)
+	if !strings.Contains(got, "Usage: taskgate run ") {
+		t.Errorf("missing usage line: %q", got)
+	}
+	if !strings.Contains(got, "Usage: taskgate run "+name) {
+		t.Errorf("usage line missing task name %q: %q", name, got)
+	}
+}
+
+func TestRenderAI_Task_SpecArgsFlagsEndToEnd(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "deploy")
+	body := "#!/bin/sh\n# ---\n# summary: Deploy.\n# args:\n#   - name: env\n#     choices: [staging, prod]\n#     required: true\n# flags:\n#   - name: --tag\n#     type: string\n# ---\n"
+	if err := os.WriteFile(p, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	target := ResolvedTarget{
+		Kind: EntryKindTask,
+		Entry: Entry{
+			Path: p,
+			Kind: EntryKindTask,
+			Annotation: annotation.AnnotationBlock{
+				Summary: "Deploy.",
+			},
+		},
+	}
+	var buf bytes.Buffer
+	if err := renderAITarget(&buf, target); err != nil {
+		t.Fatal(err)
+	}
+	got := decodeOneJSON(t, buf.Bytes())
+	if _, present := got["args"]; !present {
+		t.Errorf("missing args in envelope: %v", got)
+	}
+	if _, present := got["flags"]; !present {
+		t.Errorf("missing flags in envelope: %v", got)
+	}
+	flags, ok := got["flags"].([]any)
+	if !ok || len(flags) != 1 {
+		t.Fatalf("flags = %v", got["flags"])
+	}
+	f0 := flags[0].(map[string]any)
+	if f0["name"] != "--tag" {
+		t.Errorf("flag name = %v, want --tag", f0["name"])
+	}
+}
+
+func TestRenderAI_Task_MalformedSpecOmitsArgsFlags(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "deploy")
+	body := "#!/bin/sh\n# ---\n# summary: Deploy.\n# args: nope\n# ---\n"
+	if err := os.WriteFile(p, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	target := ResolvedTarget{
+		Kind: EntryKindTask,
+		Entry: Entry{
+			Path: p,
+			Kind: EntryKindTask,
+			Annotation: annotation.AnnotationBlock{
+				Summary: "Deploy.",
+			},
+		},
+	}
+	var buf bytes.Buffer
+	if err := renderAITarget(&buf, target); err != nil {
+		t.Fatal(err)
+	}
+	got := decodeOneJSON(t, buf.Bytes())
+	if _, present := got["args"]; present {
+		t.Errorf("args should be omitted for malformed spec: %v", got)
+	}
+	if _, present := got["flags"]; present {
+		t.Errorf("flags should be omitted for malformed spec: %v", got)
 	}
 }
 
